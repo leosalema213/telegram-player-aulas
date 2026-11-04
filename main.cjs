@@ -8,11 +8,13 @@ const { createWriteStream } = require('node:fs');
 const { randomUUID } = require('node:crypto');
 const { connect } = require('./telegram.cjs');
 const { normalizePhone } = require('./phone.cjs');
+const { validSpeed: validPlaybackSpeed } = require('./playback.js');
 const { AppUpdates } = require('./updates.cjs');
 const { spawn } = require('node:child_process');
 
 const demo = process.argv.includes('--demo');
 app.setName(demo ? 'Player de Aulas Demo' : 'Player de Aulas');
+if (demo && process.env.PLAYER_DEMO_USER_DATA) app.setPath('userData', path.resolve(process.env.PLAYER_DEMO_USER_DATA));
 protocol.registerSchemesAsPrivileged([
   { scheme: 'lesson', privileges: { standard: true, secure: true, stream: true, supportFetchAPI: true } },
 ]);
@@ -20,6 +22,7 @@ protocol.registerSchemesAsPrivileged([
 const directory = app.getPath('userData');
 const sessionPath = path.join(directory, 'sessao.bin');
 const appearancePath = path.join(directory, 'aparencia.json');
+const playbackPath = path.join(directory, 'reproducao.json');
 let window;
 let telegram;
 let credentials;
@@ -103,6 +106,16 @@ function setupHandlers(startupError) {
     return data ? JSON.parse(data) : {};
   });
   bind('save-appearance', ({ mode, palette }) => saveQueued(appearancePath, { mode, palette }));
+  bind('playback-settings', async () => {
+    const data = await readFile(playbackPath);
+    if (!data) return { speed: 1 };
+    try { const { speed } = JSON.parse(data); return { speed: validPlaybackSpeed(speed) ? speed : 1 }; }
+    catch { return { speed: 1 }; }
+  });
+  bind('save-playback-speed', speed => {
+    if (!validPlaybackSpeed(speed)) throw new Error('Escolha uma velocidade entre 0,25× e 2×.');
+    return saveQueued(playbackPath, { speed });
+  });
   bind('library', () => ({ connected: !!account, demo, courses: Object.values(courses), startupError }));
   bind('send-code', async ({ apiId, apiHash, phone, country }) => {
     if (demo || account) throw new Error('A sessão já está aberta.');
@@ -155,14 +168,15 @@ function setupHandlers(startupError) {
     const documents = demo ? sampleDocuments : await telegram.documents(id);
     if (owner !== account) throw new Error('A sessão mudou durante a importação.');
     if (!lessons.length) throw new Error('O canal não tem aulas de vídeo disponíveis.');
+    const previous = new Map((courses[id]?.lessons || []).map(item => [item.id, item]));
     courses[id] = {
       ...channel,
       documents,
       lessons: lessons.map(lesson => ({
         ...lesson,
-        position: Math.min(selectedLesson(id, lesson.id)?.position || 0, lesson.duration),
-        done: !!selectedLesson(id, lesson.id)?.done,
-        updated: selectedLesson(id, lesson.id)?.updated || 0,
+        position: Math.min(previous.get(lesson.id)?.position || 0, lesson.duration),
+        done: !!previous.get(lesson.id)?.done,
+        updated: previous.get(lesson.id)?.updated || 0,
       })),
     };
     await saveLibrary();
@@ -285,6 +299,7 @@ async function start() {
   window = new BrowserWindow({
     width: 1120, height: 780, minWidth: 780, minHeight: 540, backgroundColor: '#101010',
     icon: path.join(__dirname, 'assets', 'icon.ico'),
+    titleBarStyle: 'hidden', titleBarOverlay: { color: '#141414', symbolColor: '#ededed', height: 48 },
     webPreferences: { preload: path.join(__dirname, 'preload.cjs'), sandbox: true, contextIsolation: true },
   });
   window.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));

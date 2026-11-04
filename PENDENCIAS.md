@@ -9,4 +9,7 @@
 - [ ] Validar o fluxo completo de descoberta, download e reinício para atualização com uma fonte de teste; a atualização da prévia 0.1.0-preview.7 para a estável 0.1.0 preservou arquivos de perfil isolados, e a falha com nova tentativa foi simulada no atualizador.
 - [ ] Implementar e validar suporte a mensagens patrocinadas em canais e conferir os demais requisitos dos termos da API do Telegram antes de considerar a integração adequada para distribuição ampla.
 - [ ] Validar em um canal real a importação e atualização de documentos, download, arquivo indisponível e nova tentativa; confirmar que a atualização mantém o progresso existente. Os documentos são exibidos por curso e não são associados automaticamente a uma aula.
+- [ ] Validar em aulas reais a conclusão automática no fim, controles do player e velocidade entre aulas/cursos e após reiniciar. Medir consumo em uso contínuo com vídeo real.
+- [ ] Validar em canal real a retomada pausada da última aula ao abrir, as velocidades personalizadas e o modo teatro da prévia 0.1.1-preview.2.
+- [ ] Confirmar preservação do perfil efetivamente usado pelo aplicativo instalado durante uma atualização: os testes anteriores de instalador conferiram arquivos artificiais, mas a variável APPDATA sozinha não garantiu o isolamento do perfil Electron.
 - [x] Confirmar acesso de escrita ao origin e publicar a primeira versão estável com instalador e SHA-256 após autorização do usuário.

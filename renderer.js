@@ -5,6 +5,11 @@ let course;
 let lesson;
 let lastSaved = 0;
 let restoring = false;
+let playbackSpeed = 1;
+const playIcon = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 3 14 9-14 9z"/></svg>';
+const pauseIcon = '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="4" width="4" height="16" rx="1"/><rect x="15" y="4" width="4" height="16" rx="1"/></svg>';
+const volumeIcon = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m11 5-6 4H2v6h3l6 4z"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07M19.07 4.93a10 10 0 0 1 0 14.14"/></svg>';
+const mutedIcon = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m11 5-6 4H2v6h3l6 4zM22 9l-6 6m0-6 6 6"/></svg>';
 
 function duration(seconds) {
   const total = Math.max(0, Math.ceil(seconds));
@@ -65,16 +70,20 @@ function render() {
 }
 
 function renderStats() {
-  const total = course.lessons.reduce((sum, item) => sum + item.duration, 0);
-  const left = course.lessons.reduce((sum, item) => sum + (item.done ? 0 : Math.max(0, item.duration - item.position)), 0);
-  const done = course.lessons.filter(item => item.done).length;
+  let total = 0, left = 0, done = 0, first, recent;
+  for (const item of course.lessons) {
+    total += item.duration;
+    if (item.done) { done++; continue; }
+    left += Math.max(0, item.duration - item.position);
+    first ||= item;
+    if (item.position > 0 && item.updated > (recent?.updated || 0)) recent = item;
+  }
   const percent = total ? Math.floor((total - left) / total * 100) : 0;
   $('completed').textContent = `${done} / ${course.lessons.length}`;
   $('remaining').textContent = duration(left);
   $('percent').textContent = `${percent}%`;
   $('bar').value = percent;
-  const available = course.lessons.filter(item => !item.done);
-  const next = available.reduce((recent, item) => item.position > 0 && item.updated > (recent?.updated || 0) ? item : recent, null) || available[0];
+  const next = recent || first;
   $('resume').hidden = !next;
   if (next) {
     $('resume').textContent = next.position > 0 ? `▷ Continuar em ${duration(next.position)}` : '▷ Assistir próxima aula';
@@ -187,6 +196,7 @@ function stop() {
   video.load();
   video.hidden = true;
   $('poster').hidden = false;
+  updatePlayer();
   return saved;
 }
 
@@ -198,9 +208,9 @@ function selectCourse(item) {
   render();
 }
 
-function selectLesson(item) {
+function selectLesson(item, autoplay = true) {
   if (item === lesson && !video.error) {
-    video.play().catch(() => {});
+    if (autoplay) video.play().catch(() => {});
     return;
   }
   stop();
@@ -210,7 +220,8 @@ function selectLesson(item) {
   video.hidden = false;
   $('poster').hidden = true;
   video.src = `lesson://video/${course.id}/${item.id}`;
-  video.play().catch(() => {});
+  video.playbackRate = playbackSpeed;
+  if (autoplay) video.play().catch(() => {});
   render();
 }
 
@@ -218,25 +229,115 @@ video.addEventListener('loadedmetadata', () => {
   if (!lesson || !restoring) return;
   if (lesson.position > 0 && lesson.position < video.duration) video.currentTime = lesson.position;
   restoring = false;
+  updatePlayer();
 });
 video.addEventListener('timeupdate', () => {
-  if (Date.now() - lastSaved >= 2000) saveProgress();
+  updatePlayer();
+  if (Date.now() - lastSaved >= 5000) saveProgress();
 });
-video.addEventListener('pause', () => saveProgress());
+video.addEventListener('play', updatePlayer);
+video.addEventListener('pause', () => { updatePlayer(); saveProgress(); });
 video.addEventListener('seeked', () => saveProgress());
 video.addEventListener('ended', async () => {
   await saveProgress(true);
   render();
 });
 video.addEventListener('error', () => {
+  updatePlayer();
   if (lesson) notice('Não foi possível reproduzir a aula. Confira sua conexão e tente abrir o vídeo novamente.');
 });
 window.addEventListener('beforeunload', () => saveProgress());
+function updatePlayer() {
+  const active = !!lesson && !video.error;
+  const length = Number.isFinite(video.duration) && video.duration > 0 ? video.duration : lesson?.duration || 0;
+  const current = Number.isFinite(video.currentTime) ? video.currentTime : 0;
+  const playing = active && !video.paused && !video.ended;
+  $('play-pause').innerHTML = playing ? pauseIcon : playIcon;
+  $('play-pause').setAttribute('aria-label', playing ? 'Pausar' : 'Reproduzir');
+  $('play-pause').title = playing ? 'Pausar' : 'Reproduzir';
+  $('play-pause').disabled = !active;
+  $('seek').disabled = !active || !length;
+  $('seek').value = length ? Math.min(1000, current / length * 1000) : 0;
+  $('current-time').textContent = duration(current);
+  $('total-time').textContent = duration(length);
+}
+function togglePlayback() {
+  if (!lesson) return;
+  if (video.paused || video.ended) video.play().catch(() => notice('Não foi possível reproduzir a aula. Tente novamente.'));
+  else video.pause();
+}
+$('play-pause').onclick = togglePlayback;
+video.onclick = togglePlayback;
+$('seek').oninput = event => {
+  const length = Number.isFinite(video.duration) ? video.duration : 0;
+  if (length > 0) video.currentTime = Number(event.target.value) / 1000 * length;
+};
+$('volume').oninput = event => { video.volume = Number(event.target.value) / 100; video.muted = video.volume === 0; };
+$('mute').onclick = () => { video.muted = !video.muted; };
+video.addEventListener('volumechange', () => {
+  $('mute').innerHTML = video.muted || video.volume === 0 ? mutedIcon : volumeIcon;
+  $('mute').setAttribute('aria-label', video.muted || video.volume === 0 ? 'Ativar som' : 'Silenciar');
+  $('mute').title = $('mute').getAttribute('aria-label');
+  $('volume').value = video.muted ? 0 : Math.round(video.volume * 100);
+});
+function displaySpeed(speed) {
+  playbackSpeed = speed;
+  video.defaultPlaybackRate = speed;
+  video.playbackRate = speed;
+  $('speed-toggle').textContent = `${String(speed).replace('.', ',')}×`;
+  $('speed-number').value = String(speed);
+  $('speed-range').value = String(speed);
+  $('speed-status').textContent = '';
+  document.querySelectorAll('[data-speed]').forEach(button => button.setAttribute('aria-pressed', String(Number(button.dataset.speed) === speed)));
+}
+async function setSpeed(value, save = true) {
+  const speed = Number(value);
+  if (!window.playbackUtils.validSpeed(speed)) {
+    $('speed-status').textContent = 'Informe um valor entre 0,25 e 2, com até duas casas decimais.';
+    return;
+  }
+  displaySpeed(speed);
+  if (save) {
+    try { await window.player.savePlaybackSpeed(speed); }
+    catch { $('speed-status').textContent = 'Não foi possível salvar a velocidade. Tente novamente.'; }
+  }
+}
+function showSpeedMenu(open) {
+  $('speed-menu').hidden = !open;
+  $('speed-toggle').setAttribute('aria-expanded', String(open));
+}
+$('speed-toggle').onclick = () => showSpeedMenu($('speed-menu').hidden);
+$('speed-range').oninput = event => setSpeed(event.target.value, false);
+$('speed-range').onchange = event => setSpeed(event.target.value);
+$('speed-number').onchange = event => setSpeed(event.target.value);
+$('speed-minus').onclick = () => setSpeed(Math.max(0.25, Math.round((playbackSpeed - 0.05) * 100) / 100));
+$('speed-plus').onclick = () => setSpeed(Math.min(2, Math.round((playbackSpeed + 0.05) * 100) / 100));
+document.querySelectorAll('[data-speed]').forEach(button => { button.onclick = () => setSpeed(button.dataset.speed); });
+document.addEventListener('click', event => { if (!event.target.closest('.speed-control')) showSpeedMenu(false); });
+document.addEventListener('keydown', event => { if (event.key === 'Escape' && !$('speed-menu').hidden) { showSpeedMenu(false); $('speed-toggle').focus(); } });
+$('fullscreen').onclick = async () => {
+  try {
+    if (document.fullscreenElement) await document.exitFullscreen();
+    else await document.querySelector('.viewing').requestFullscreen();
+  } catch { notice('Não foi possível abrir a tela cheia.'); }
+};
+document.addEventListener('fullscreenchange', () => {
+  const active = !!document.fullscreenElement;
+  $('fullscreen').setAttribute('aria-label', active ? 'Sair da tela cheia' : 'Tela cheia');
+  $('fullscreen').title = $('fullscreen').getAttribute('aria-label');
+});
 $('search').oninput = renderLessons;
+$('toggle-sidebar').onclick = () => {
+  const collapsed = document.body.classList.toggle('sidebar-collapsed');
+  const label = collapsed ? 'Expandir barra lateral' : 'Recolher barra lateral';
+  $('toggle-sidebar').setAttribute('aria-expanded', String(!collapsed));
+  $('toggle-sidebar').setAttribute('aria-label', label);
+  $('toggle-sidebar').title = label;
+};
 $('theater').onclick = () => {
   const expanded = $('theater').getAttribute('aria-pressed') !== 'true';
   $('theater').setAttribute('aria-pressed', String(expanded));
-  $('theater').textContent = expanded ? 'Mostrar aulas' : 'Modo teatro';
+  $('theater').setAttribute('aria-label', expanded ? 'Mostrar aulas' : 'Modo teatro');
   $('theater').title = expanded ? 'Mostrar a lista de aulas' : 'Ampliar vídeo e ocultar a lista de aulas';
   $('playlist').hidden = expanded;
   document.querySelector('.course-grid').classList.toggle('theater', expanded);
@@ -251,9 +352,14 @@ $('toggle-done').onclick = () => {
 };
 
 async function initialize() {
+  const settings = await window.player.playbackSettings().catch(() => { notice('Não foi possível ler a velocidade salva.'); return { speed: 1 }; });
+  displaySpeed(settings.speed);
   library = await window.player.library();
   course = library.courses[0];
+  const recent = window.playbackUtils.findResume(library.courses);
+  if (recent) course = recent.course;
   render();
+  if (recent) selectLesson(recent.item, false);
   if (library.startupError) notice(library.startupError);
 }
 

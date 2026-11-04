@@ -3,6 +3,8 @@ const { contextBridge, ipcRenderer } = require('electron');
 contextBridge.exposeInMainWorld('player', {
   appearance: () => ipcRenderer.invoke('appearance'),
   saveAppearance: settings => ipcRenderer.invoke('save-appearance', settings),
+  playbackSettings: () => ipcRenderer.invoke('playback-settings'),
+  savePlaybackSpeed: speed => ipcRenderer.invoke('save-playback-speed', speed),
   library: () => ipcRenderer.invoke('library'),
   sendCode: config => ipcRenderer.invoke('send-code', config),
   signIn: code => ipcRenderer.invoke('sign-in', code),

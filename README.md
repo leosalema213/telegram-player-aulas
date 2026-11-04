@@ -11,6 +11,8 @@ Aplicativo para Windows que organiza aulas de vídeo de canais do Telegram acess
 5. Abra uma aula ou marque a caixa ao lado dela para registrar que já assistiu. **Continuar** retoma o ponto salvo; **Modo teatro** amplia o vídeo e recolhe a lista de aulas.
 6. Os documentos do canal aparecem em **Materiais para baixar**. Escolha **Baixar** e indique onde salvar. Em cursos importados anteriormente, use **Atualizar** para consultar os materiais e novas aulas preservando o progresso das aulas ainda presentes.
 
+Ao abrir, o player prepara a aula pendente mais recente no ponto salvo, sem iniciar a reprodução automaticamente. Nos controles, ajuste a velocidade com as opções rápidas, o controle deslizante ou um valor entre 0,25× e 2×; a escolha é mantida entre aulas e cursos.
+
 O aplicativo consulta versões estáveis ao abrir. Em **Preferências → Atualizações**, também é possível verificar manualmente, baixar e instalar quando preferir. Atualizações preservam os dados locais. O instalador não possui assinatura digital; o Windows pode apresentar um aviso ao abri-lo.
 
 O player ainda não exibe mensagens patrocinadas dos canais. Os [termos da API do Telegram](https://core.telegram.org/api/terms) exigem suporte a elas em aplicativos que acessam canais; essa adequação segue pendente.
