@@ -1,0 +1,23 @@
+const { contextBridge, ipcRenderer } = require('electron');
+
+contextBridge.exposeInMainWorld('player', {
+  appearance: () => ipcRenderer.invoke('appearance'),
+  saveAppearance: settings => ipcRenderer.invoke('save-appearance', settings),
+  library: () => ipcRenderer.invoke('library'),
+  sendCode: config => ipcRenderer.invoke('send-code', config),
+  signIn: code => ipcRenderer.invoke('sign-in', code),
+  password: password => ipcRenderer.invoke('password', password),
+  disconnect: () => ipcRenderer.invoke('disconnect'),
+  channels: () => ipcRenderer.invoke('channels'),
+  importCourse: id => ipcRenderer.invoke('import-course', id),
+  removeCourse: id => ipcRenderer.invoke('remove-course', id),
+  downloadDocument: (id, document) => ipcRenderer.invoke('download-document', id, document),
+  progress: (id, lesson, position, done) => ipcRenderer.invoke('progress', id, lesson, position, done),
+  openApi: () => ipcRenderer.invoke('open-api'),
+  appVersion: () => ipcRenderer.invoke('app-version'),
+  updateStatus: () => ipcRenderer.invoke('update-status'),
+  updateCheck: () => ipcRenderer.invoke('update-check'),
+  updateDownload: () => ipcRenderer.invoke('update-download'),
+  updateInstall: () => ipcRenderer.invoke('update-install'),
+  onUpdate: callback => ipcRenderer.on('update-status', (_event, state) => callback(state)),
+});

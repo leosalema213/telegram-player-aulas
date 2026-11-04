@@ -1,0 +1,136 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; media-src lesson:; object-src 'none'; base-uri 'none'; form-action 'none'">
+  <title>Player de Aulas</title>
+  <link rel="stylesheet" href="style.css">
+  <script src="theme.js" defer></script>
+  <script src="renderer.js" defer></script>
+</head>
+<body>
+  <aside class="sidebar">
+    <div class="brand"><img class="brand-mark" src="assets/icon.png" alt=""><div>Player de Aulas<small id="app-version"></small></div></div>
+    <span class="eyebrow">MEUS CURSOS</span>
+    <nav id="courses" aria-label="Cursos"></nav>
+    <button id="add" class="secondary" hidden>＋ Importar canal</button>
+    <footer>
+      <button id="preferences" class="quiet"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8Z"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06-1.41 2.44-.09-.02a1.65 1.65 0 0 0-1.74.62l-.05.08h-2.82l-.04-.08a1.65 1.65 0 0 0-1.64-.92 1.65 1.65 0 0 0-1.64.92l-.04.08H7.5l-.05-.08a1.65 1.65 0 0 0-1.74-.62l-.09.02-1.41-2.44.06-.06A1.65 1.65 0 0 0 4.6 15l-.08-.05v-2.9l.08-.05a1.65 1.65 0 0 0-.33-1.82l-.06-.06 1.41-2.44.09.02a1.65 1.65 0 0 0 1.74-.62L7.5 7h2.82l.04.08A1.65 1.65 0 0 0 12 8a1.65 1.65 0 0 0 1.64-.92l.04-.08h2.82l.05.08a1.65 1.65 0 0 0 1.74.62l.09-.02 1.41 2.44-.06.06A1.65 1.65 0 0 0 19.4 12l.08.05v2.9Z"/></svg>Preferências</button>
+      <span id="connection">● Dados locais</span>
+      <button id="disconnect" class="quiet" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg>Desconectar conta</button>
+    </footer>
+  </aside>
+  <div class="workspace">
+    <header class="topbar"><span>Biblioteca</span><button id="toggle-theme" class="quiet"></button></header>
+    <main>
+      <p id="notice" role="status" hidden></p>
+      <section id="login" class="card onboarding" hidden>
+        <span class="eyebrow">PRIMEIRO ACESSO</span>
+        <h1>Conecte sua conta</h1>
+        <p>O app usa a API do Telegram para acessar os canais da sua conta. Seu catálogo e progresso ficam neste PC.</p>
+        <form id="credentials">
+          <label>API ID<input name="apiId" type="number" min="1" required></label>
+          <label>API hash<input name="apiHash" type="password" required></label>
+          <label>País<select name="country" id="country"><option value="BR">Brasil (+55)</option><option value="PT">Portugal (+351)</option><option value="US">Estados Unidos (+1)</option><option value="GB">Reino Unido (+44)</option></select></label>
+          <label>Telefone<input name="phone" type="tel" placeholder="(11) 99999-9999" required></label>
+          <p class="hint">Entre com sua conta Telegram para <button type="button" id="api-link" class="text-link">Obter API ID e API Hash</button> em API development tools.</p>
+          <button class="primary">Enviar código</button>
+        </form>
+        <form id="code" hidden>
+          <label><span id="code-label">Código enviado pelo Telegram</span><input name="value" inputmode="numeric" autocomplete="one-time-code" required></label>
+          <button class="primary">Confirmar código</button>
+          <button type="button" class="secondary back">Voltar</button>
+        </form>
+        <form id="password" hidden>
+          <label>Senha da verificação em duas etapas<input name="value" type="password" required></label>
+          <button class="primary">Entrar</button>
+          <button type="button" class="secondary back">Voltar</button>
+        </form>
+      </section>
+      <section id="empty" class="card onboarding" hidden>
+        <span class="eyebrow">BIBLIOTECA</span><h1>Seus cursos, em ordem</h1>
+        <p>Importe um canal para listar as aulas e acompanhar seu progresso.</p>
+        <button id="add-empty" class="primary">Importar canal</button>
+      </section>
+      <section id="course" hidden>
+        <div class="heading">
+          <div><span class="eyebrow">CURSO</span><h1 id="course-title"></h1></div>
+          <div class="actions"><button id="refresh" class="secondary">Atualizar</button><button id="remove" class="quiet">Remover</button></div>
+        </div>
+        <div class="stats">
+          <div class="card stat"><span class="eyebrow">AULAS CONCLUÍDAS</span><strong id="completed"></strong></div>
+          <div class="card stat"><span class="eyebrow">TEMPO RESTANTE</span><strong id="remaining"></strong></div>
+          <div class="card stat"><span class="eyebrow">PROGRESSO</span><strong id="percent"></strong><progress id="bar" max="100"></progress></div>
+        </div>
+        <div class="course-grid">
+          <section class="card viewing">
+            <div class="screen"><video id="video" controls preload="metadata" hidden></video><div id="poster"><img src="assets/icon.png" alt=""><p>Escolha uma aula para assistir</p></div></div>
+            <div class="player-info">
+              <div><span id="now-chapter" class="eyebrow"></span><h2 id="now-title">Sala de reprodução</h2></div>
+              <div class="actions"><button id="theater" class="secondary" type="button" aria-pressed="false" aria-controls="playlist" title="Ampliar vídeo e ocultar a lista de aulas">Modo teatro</button><button id="toggle-done" class="secondary" hidden>Concluir aula</button></div>
+            </div>
+          </section>
+          <section id="playlist" class="card playlist">
+            <div class="playlist-head"><h2>Aulas</h2><input id="search" type="search" placeholder="Buscar aula…" aria-label="Buscar aula"></div>
+            <button id="resume" class="primary"></button>
+            <div id="lessons"></div>
+          </section>
+        </div>
+        <section id="materials" class="card materials" hidden>
+          <div class="materials-head"><h2>Materiais para baixar</h2><span id="materials-count" class="eyebrow"></span></div>
+          <p id="materials-status" role="status"></p>
+          <div id="documents"></div>
+        </section>
+      </section>
+    </main>
+  </div>
+  <dialog id="importer">
+    <form id="import-form">
+      <h2>Importar canal</h2>
+      <label>Canal do Telegram<select id="channels" required></select></label>
+      <p id="import-status" role="status"></p>
+      <div class="actions"><button type="button" id="cancel-import" class="secondary">Fechar</button><button id="do-import" class="primary">Importar</button></div>
+    </form>
+  </dialog>
+  <dialog id="confirm-remove">
+    <form method="dialog"><h2>Remover curso?</h2><p>O catálogo e o progresso deste curso serão apagados deste PC.</p>
+      <div class="actions"><button value="cancel" class="secondary" autofocus>Cancelar</button><button value="remove" class="danger">Remover curso</button></div>
+    </form>
+  </dialog>
+  <dialog id="appearance" aria-labelledby="appearance-title">
+    <form method="dialog">
+      <h2 id="appearance-title">Preferências</h2>
+      <div class="preferences-tabs" role="tablist" aria-label="Categorias de preferências"><button type="button" role="tab" id="tab-appearance" aria-controls="panel-appearance" aria-selected="true">Aparência</button><button type="button" role="tab" id="tab-updates" aria-controls="panel-updates" aria-selected="false" tabindex="-1">Atualizações</button></div>
+      <div id="panel-appearance" role="tabpanel" aria-labelledby="tab-appearance">
+      <p class="eyebrow">APARÊNCIA</p>
+      <div class="theme-options" role="group" aria-label="Tema do aplicativo">
+        <button type="button" data-mode="system">Dispositivo</button>
+        <button type="button" data-mode="light">Claro</button>
+        <button type="button" data-mode="dark">Escuro</button>
+        <button type="button" data-mode="custom">Personalizado</button>
+      </div>
+      <div id="palette-options" class="theme-options" role="group" aria-label="Paletas de cores" hidden>
+        <button type="button" data-color="pink">Rosa</button>
+        <button type="button" data-color="blue">Azul</button>
+        <button type="button" data-color="green">Verde</button>
+        <button type="button" data-color="purple">Roxo</button>
+      </div>
+      <p id="appearance-status" role="status"></p>
+      </div>
+      <div id="panel-updates" role="tabpanel" aria-labelledby="tab-updates" hidden>
+        <h2>Versão e atualizações</h2><p id="installed-version"></p><p id="update-preferences-status" role="status"></p>
+        <button type="button" id="update-preferences-action" class="secondary">Verificar atualização</button>
+        <p>Novas versões são verificadas ao abrir. Você escolhe quando baixar e instalar.</p>
+      </div>
+      <div class="actions"><button class="secondary">Fechar</button></div>
+    </form>
+  </dialog>
+  <dialog id="updates" aria-labelledby="updates-title">
+    <h2 id="updates-title">Atualização do aplicativo</h2>
+    <p id="updates-status" role="status"></p>
+    <progress id="updates-progress" max="100" hidden></progress>
+    <div class="actions"><button id="updates-close" class="secondary">Depois</button><button id="updates-action" class="primary">Baixar</button></div>
+  </dialog>
+</body>
+</html>

@@ -1,0 +1,52 @@
+# Repasse entre planejamento e execução
+
+**Lote atual:** ajustes no login e na importação, instalador e atualizações no Windows
+**Estado:** Preparação da primeira versão estável — instalação validada; publicação solicitada
+
+## Resultado parcial da execução
+
+- Versão estável `0.1.0`: executadas instalação da prévia e atualização para a estável em pasta e perfil isolados; ambos os instaladores retornaram sucesso, o aplicativo abriu e os arquivos de perfil de teste foram preservados. A cópia de teste foi desinstalada. Consulta/download do atualizador testados com fonte simulada; instalação e reinício pelo próprio atualizador e o canal publicado ainda precisam de validação.
+- A pedido do usuário para preparar a primeira Release, implementados modo teatro, ícone, preferências de atualização e README. Prévia `0.1.0-preview.7`: assistente oferece escolha de pasta; instalação, reinstalação e abertura em perfil isolado testadas; arquivos de perfil de teste preservados. Modo teatro e abas de preferências testados em Electron. A consulta e o download de atualizações foram simulados, mas o fluxo completo de atualização com reinício ainda precisa ser validado. Os termos do Telegram exigem suporte a mensagens patrocinadas, que permanece pendente e está documentado.
+- Prévia `0.1.0-preview.6`: acrescentados materiais por curso, com download escolhido pelo usuário, e marcação de conclusão diretamente na lista. Cursos já importados precisam de Atualizar para buscar documentos; falha na leitura não substitui o catálogo. Em demonstração com perfil isolado foram verificados marcação sem reprodução, persistência, atualização, desmarcação e download. Validação de documentos em canal real pendente.
+- Prévia `0.1.0-preview.5`: seletor limitado à largura disponível na modal. Em Electron com perfil isolado, um canal com título longo não causou rolagem horizontal nem vertical; arquivos empacotados conferidos. Instalação ainda pendente de validação.
+- Prévia `0.1.0-preview.4`: ajustado o recuo da seta e do texto dos seletores de país e canais, mantendo o seletor nativo. O usuário esclareceu que a captura da lista branca era de uma prévia antiga. Arquivos do pacote conferidos com `node tests/package-check.cjs`; inspeção visual e instalação seguem pendentes.
+- Correção após relato de erro na abertura: a prévia `0.1.0-preview.2` tinha `updates.cjs` corrompido dentro do ASAR, causado por alteração de arquivo durante o empacotamento. Não usar essa prévia. Gerada `0.1.0-preview.3`, SHA-256 `1677e601b496777117b87122107e0f5c0b33e8bcd7eac325593ef48b2744c292`; `node tests/package-check.cjs` confirmou igualdade e sintaxe dos arquivos empacotados. O executável desempacotado abriu uma janela em modo demonstração com perfil isolado. Instalação e atualização completas ainda aguardam validação.
+- Implementados link de credenciais, seleção de país e normalização de telefone para Brasil, Portugal, Estados Unidos e Reino Unido; seletores nativos receberam cores explícitas.
+- Implementados instalador NSIS e atualizador de versões estáveis, com verificação SHA-256, progresso e nova tentativa. `npm run check` passou com quatro testes, incluindo download simulado com falha e nova tentativa (fora do sandbox, que bloqueou a renomeação de `.exe`).
+- Prévia atual disponível em `release/0.1.0-preview.6/Player-de-Aulas-Instalar.exe`; instalador ainda não validado por instalação e atualização reais. Em futuros builds, não alterar fontes durante o empacotamento e executar `node tests/package-check.cjs` depois da geração.
+- `origin` acessível para leitura e sem referências remotas; repositório local ainda sem commits. Acesso de escrita não foi testado. Nenhuma publicação foi feita.
+- Falta inspecionar link e seletores nas paletas, instalar em perfil de teste, validar atualização completa e preservar perfil/sessão, além do teste em canal real. Após validação e aval explícito, preparar publicação estável, confirmar acesso de escrita, commit/push e Release.
+
+## Contexto
+
+Player de Aulas é um aplicativo Electron para Windows. Importa vídeos de canais acessíveis à conta, organiza aulas, reproduz por trechos e guarda o ponto de retomada. O Organon é a referência visual. Catálogo, progresso e aparência ficam em JSON local. A sessão fica protegida pelo sistema operacional. Veja `AGENTS.md`, `README.md` e `PENDENCIAS.md`.
+
+Já passaram a demonstração de reprodução e retomada, a troca e persistência de paleta e a simulação de leitura por intervalo de bytes. Login, importação e reprodução no Telegram real seguem pendentes.
+
+## Objetivo e critérios de aceite
+
+- Na tela de credenciais, adicionar o link **Obter API ID e API Hash** para [API development tools](https://my.telegram.org/apps). Abrir no navegador padrão e indicar que o usuário deve entrar com a conta Telegram.
+- No login, oferecer um seletor de país que preencha o código internacional, com Brasil (+55) como padrão inicial e opção de trocar. Aceitar número local, número completo com `+` e número internacional sem `+` quando corresponder ao país selecionado e tiver formato válido. Aceitar espaços, parênteses e hífens usuais. Evitar duplicar o código do país e pedir correção em português se a entrada for inválida ou ambígua.
+- Corrigir o contraste da lista aberta do seletor de canais na importação, inclusive opções comuns e opção selecionada, conforme a captura do usuário. Aplicar o mesmo tratamento ao seletor de país e manter a navegação por teclado.
+- Usar o `origin` já configurado para `leosalema213/telegram-player-aulas`. Conferir o histórico e o acesso ao remoto antes da primeira publicação.
+- Replicar a experiência do Organon no instalador NSIS e no atualizador do app. Usar como referência `../estudo-desktop/build/installer.nsh`, `electron/updates.cjs`, `package.json` e `scripts/publish-release.cjs` do Organon. Na abertura do app instalado, buscar uma versão estável e, quando disponível, oferecer download e instalação, com progresso, erro e nova tentativa. Preservar perfil e sessão na atualização.
+- Entregar um instalador com versão de prévia ao fim do lote. Após validação e autorização explícita do usuário, gerar e validar o instalador estável, fazer commit e push, publicar a GitHub Release com os arquivos de atualização e conferir o canal estável.
+
+## Validação
+
+- Rodar as verificações locais do projeto. No Electron para Windows, conferir a abertura do link, testar número local e completo com e sem `+`, trocar de país e inspecionar os dois seletores abertos nas paletas disponíveis.
+- Validar instalação inicial e atualização sobre uma instalação anterior em perfil de teste. Conferir abertura, descoberta de versão, download, reinício para instalar e preservação do perfil. Exercitar falha e nova tentativa antes da publicação com uma fonte de teste. Após publicação autorizada, verificar a Release e os metadados no canal real.
+- Retomar o teste real com os passos abaixo. Login com código e duas etapas, reconexão, desconexão, importação e reprodução seguem registrados em `PENDENCIAS.md`.
+
+### Teste em canal real
+
+1. Abra o app com `npm.cmd start` na pasta do projeto e conecte uma conta pelo próprio app.
+2. Importe um canal acessível, confira títulos, capítulos e duração.
+3. Abra uma aula, salte para o meio, feche o app e reabra. Confirme que **Continuar** retoma o ponto salvo e que o tempo restante diminuiu.
+4. Se falhar, registre a etapa, o comportamento esperado, o observado e a mensagem de erro. Exclua credenciais, códigos, senha, telefone e dados de sessão do relato.
+
+## Fluxo dos chats
+
+- **Sol** recebe o pedido e atualiza este arquivo com objetivo, escopo, critérios de aceite e validação. Reutiliza as referências locais e mantém o repasse curto. Marca **Pronto para execução** somente quando houver trabalho definido. Se o usuário pedir o envio, encaminha ao Terra uma mensagem curta com a referência deste arquivo.
+- **Terra** lê este arquivo e `AGENTS.md` antes de executar o lote. Faz mudanças localizadas, confere os critérios e registra resultado, arquivos alterados e o que falta validar. Aguarda se o lote depender de teste manual.
+- Mantenha aqui o lote ativo. Registre pendências duráveis em `PENDENCIAS.md` e instruções permanentes em `AGENTS.md`.
