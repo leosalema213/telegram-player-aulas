@@ -1,10 +1,11 @@
 # Repasse entre planejamento e execução
 
 **Lote atual:** ajustes no login e na importação, instalador e atualizações no Windows
-**Estado:** Preparação da primeira versão estável — instalação validada; publicação solicitada
+**Estado:** Versão estável 0.1.0 publicada — validações complementares pendentes
 
 ## Resultado parcial da execução
 
+- Release estável `v0.1.0` publicada em `leosalema213/telegram-player-aulas`, a partir do commit `7c87ac6`. Instalador e SHA-256 publicados e conferidos; a consulta real de uma prévia detectou a versão estável. Ainda falta validar download, reinício e instalação iniciados pelo atualizador em uma futura versão.
 - Versão estável `0.1.0`: executadas instalação da prévia e atualização para a estável em pasta e perfil isolados; ambos os instaladores retornaram sucesso, o aplicativo abriu e os arquivos de perfil de teste foram preservados. A cópia de teste foi desinstalada. Consulta/download do atualizador testados com fonte simulada; instalação e reinício pelo próprio atualizador e o canal publicado ainda precisam de validação.
 - A pedido do usuário para preparar a primeira Release, implementados modo teatro, ícone, preferências de atualização e README. Prévia `0.1.0-preview.7`: assistente oferece escolha de pasta; instalação, reinstalação e abertura em perfil isolado testadas; arquivos de perfil de teste preservados. Modo teatro e abas de preferências testados em Electron. A consulta e o download de atualizações foram simulados, mas o fluxo completo de atualização com reinício ainda precisa ser validado. Os termos do Telegram exigem suporte a mensagens patrocinadas, que permanece pendente e está documentado.
 - Prévia `0.1.0-preview.6`: acrescentados materiais por curso, com download escolhido pelo usuário, e marcação de conclusão diretamente na lista. Cursos já importados precisam de Atualizar para buscar documentos; falha na leitura não substitui o catálogo. Em demonstração com perfil isolado foram verificados marcação sem reprodução, persistência, atualização, desmarcação e download. Validação de documentos em canal real pendente.
