@@ -5,6 +5,7 @@ let course;
 let lesson;
 let lastSaved = 0;
 let restoring = false;
+let view = 'course';
 let playbackSpeed = 1;
 const playIcon = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 3 14 9-14 9z"/></svg>';
 const pauseIcon = '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="4" width="4" height="16" rx="1"/><rect x="15" y="4" width="4" height="16" rx="1"/></svg>';
@@ -48,16 +49,20 @@ function button(text, action, className) {
 
 function render() {
   $('login').hidden = library.connected;
-  $('empty').hidden = !library.connected || !!course;
-  $('course').hidden = !course;
+  $('empty').hidden = !library.connected || !!course || view === 'dashboard';
+  $('course').hidden = !course || view !== 'course';
+  $('dashboard').hidden = !library.connected || view !== 'dashboard';
+  $('home').hidden = !library.connected;
+  $('home').setAttribute('aria-current', view === 'dashboard' ? 'page' : 'false');
   $('add').hidden = !library.connected;
   $('disconnect').hidden = !library.connected || library.demo;
   $('connection').textContent = library.demo ? '● Modo demonstração' : '● Dados locais';
   $('courses').replaceChildren(...library.courses.map(item => {
     const entry = button(item.title, () => selectCourse(item), 'course-link');
-    if (item === course) entry.setAttribute('aria-current', 'true');
+    if (item === course && view === 'course') entry.setAttribute('aria-current', 'true');
     return entry;
   }));
+  if (view === 'dashboard') renderDashboard();
   if (!course) return;
   $('course-title').textContent = course.title;
   renderStats();
@@ -69,21 +74,36 @@ function render() {
   $('toggle-done').textContent = lesson?.done ? 'Reabrir aula' : 'Concluir aula';
 }
 
+function renderDashboard() {
+  const { lessons, completed, finished, remaining, percent } = window.playbackUtils.dashboardMetrics(library.courses);
+  $('dashboard-lessons').textContent = `${completed} / ${lessons}`;
+  $('dashboard-finished').textContent = `${finished} / ${library.courses.length}`;
+  $('dashboard-progress').textContent = `${percent}%`;
+  $('dashboard-remaining').textContent = duration(remaining);
+  $('dashboard-empty').hidden = library.courses.length > 0;
+  $('dashboard-courses').replaceChildren(...library.courses.map(item => {
+    const card = button('', () => selectCourse(item), 'card dashboard-course');
+    const title = document.createElement('strong'); title.textContent = item.title;
+    const done = item.lessons.filter(lesson => lesson.done).length;
+    const detail = document.createElement('span'); detail.textContent = `${done} de ${item.lessons.length} aulas concluídas`;
+    const progress = document.createElement('progress'); progress.max = Math.max(1, item.lessons.length); progress.value = done;
+    card.append(title, detail, progress); return card;
+  }));
+}
+
 function renderStats() {
-  let total = 0, left = 0, done = 0, first, recent;
+  let total = 0, left = 0, done = 0;
   for (const item of course.lessons) {
     total += item.duration;
     if (item.done) { done++; continue; }
     left += Math.max(0, item.duration - item.position);
-    first ||= item;
-    if (item.position > 0 && item.updated > (recent?.updated || 0)) recent = item;
   }
   const percent = total ? Math.floor((total - left) / total * 100) : 0;
   $('completed').textContent = `${done} / ${course.lessons.length}`;
   $('remaining').textContent = duration(left);
   $('percent').textContent = `${percent}%`;
   $('bar').value = percent;
-  const next = recent || first;
+  const next = window.playbackUtils.findResume([course])?.item;
   $('resume').hidden = !next;
   if (next) {
     $('resume').textContent = next.position > 0 ? `▷ Continuar em ${duration(next.position)}` : '▷ Assistir próxima aula';
@@ -201,12 +221,32 @@ function stop() {
 }
 
 function selectCourse(item) {
-  if (item === course) return;
+  if (item === course && view === 'course') return;
   stop();
   course = item;
+  view = 'course';
   $('search').value = '';
   render();
+  const resume = item && window.playbackUtils.findResume([item])?.item;
+  if (resume) selectLesson(resume, false);
 }
+$('home').onclick = () => { stop(); view = 'dashboard'; render(); };
+$('open-notes').onclick = () => window.notebook.open(course);
+window.addEventListener('notebook-error', event => notice(event.detail));
+function closeCourseMenu() { $('course-menu-items').hidden = true; $('course-menu-toggle').setAttribute('aria-expanded', 'false'); }
+$('course-menu-toggle').onclick = () => {
+  const open = $('course-menu-items').hidden;
+  $('course-menu-items').hidden = !open; $('course-menu-toggle').setAttribute('aria-expanded', String(open));
+  if (open) $('refresh').focus();
+};
+document.addEventListener('click', event => { if (!event.target.closest('.course-menu')) closeCourseMenu(); });
+$('course-menu-items').onkeydown = event => {
+  const items = [$('refresh'), $('remove')], index = items.indexOf(document.activeElement);
+  if (event.key === 'Escape') { event.preventDefault(); closeCourseMenu(); $('course-menu-toggle').focus(); }
+  else if (['ArrowDown', 'ArrowUp', 'Home', 'End'].includes(event.key)) {
+    event.preventDefault(); const next = event.key === 'Home' ? 0 : event.key === 'End' ? 1 : (index + 1) % 2; items[next].focus();
+  } else if (event.key === 'Tab') closeCourseMenu();
+};
 
 function selectLesson(item, autoplay = true) {
   if (item === lesson && !video.error) {
@@ -458,6 +498,7 @@ $('importer').oncancel = event => {
   if ($('cancel-import').disabled) event.preventDefault();
 };
 $('refresh').onclick = () => run(async () => {
+  closeCourseMenu();
   const id = course.id;
   notice('Atualizando aulas…');
   await window.player.channels();
@@ -465,6 +506,7 @@ $('refresh').onclick = () => run(async () => {
   notice();
 }, $('refresh'));
 $('remove').onclick = () => {
+  closeCourseMenu();
   $('confirm-remove').returnValue = '';
   $('confirm-remove').showModal();
 };

@@ -3,17 +3,18 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; media-src lesson:; object-src 'none'; base-uri 'none'; form-action 'none'">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' data:; media-src lesson:; object-src 'none'; base-uri 'none'; form-action 'none'">
   <title>Player de Aulas</title>
   <link rel="stylesheet" href="style.css">
   <script src="theme.js" defer></script>
   <script src="playback.js" defer></script>
+  <script src="notebook.js" defer></script>
   <script src="renderer.js" defer></script>
 </head>
 <body>
   <aside class="sidebar">
-    <div class="brand"><img class="brand-mark" src="assets/icon.png" alt=""><div class="brand-text">Player de Aulas<small id="app-version"></small></div></div>
-    <button id="toggle-sidebar" class="quiet sidebar-toggle" type="button" aria-label="Recolher barra lateral" title="Recolher barra lateral" aria-expanded="true" aria-controls="courses"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 3v18m7-12-3 3 3 3"/></svg><span>Recolher</span></button>
+    <div class="brand"><img class="brand-mark" src="assets/icon.png" alt=""><div class="brand-text">Player de Aulas<small id="app-version"></small></div><button id="toggle-sidebar" class="quiet sidebar-toggle" type="button" aria-label="Recolher barra lateral" title="Recolher barra lateral" aria-expanded="true" aria-controls="courses"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 3v18m7-12-3 3 3 3"/></svg></button></div>
+    <button id="home" class="quiet home-link" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg><span>Tela inicial</span></button>
     <span class="eyebrow">MEUS CURSOS</span>
     <nav id="courses" aria-label="Cursos"></nav>
     <button id="add" class="secondary" hidden>＋ Importar canal</button>
@@ -54,15 +55,21 @@
         <p>Importe um canal para listar as aulas e acompanhar seu progresso.</p>
         <button id="add-empty" class="primary">Importar canal</button>
       </section>
+      <section id="dashboard" hidden>
+        <div class="heading"><div><span class="eyebrow">SEU ESPAÇO</span><h1>Tela inicial</h1><p>Acompanhe o progresso dos seus cursos.</p></div></div>
+        <div class="dashboard-stats"><div class="card stat"><span class="eyebrow">AULAS CONCLUÍDAS</span><strong id="dashboard-lessons">0</strong></div><div class="card stat"><span class="eyebrow">CURSOS FINALIZADOS</span><strong id="dashboard-finished">0</strong></div><div class="card stat"><span class="eyebrow">PROGRESSO GERAL</span><strong id="dashboard-progress">0%</strong></div><div class="card stat"><span class="eyebrow">TEMPO RESTANTE</span><strong id="dashboard-remaining">0:00</strong></div></div>
+        <div class="dashboard-heading"><h2>Seus cursos</h2></div><div id="dashboard-courses" class="dashboard-courses"></div>
+        <p id="dashboard-empty" hidden>Nenhum curso importado ainda.</p>
+      </section>
       <section id="course" hidden>
         <div class="heading">
           <div><span class="eyebrow">CURSO</span><h1 id="course-title"></h1></div>
-          <div class="actions"><button id="refresh" class="secondary">Atualizar</button><button id="remove" class="quiet">Remover</button></div>
+          <div class="actions"><button id="open-notes" class="secondary">Anotações</button><div class="course-menu"><button id="course-menu-toggle" class="quiet course-menu-trigger" type="button" aria-label="Opções do curso" title="Opções do curso" aria-expanded="false" aria-controls="course-menu-items" aria-haspopup="menu"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9.671 4.136a2.34 2.34 0 0 1 4.659 0 2.34 2.34 0 0 0 3.319 1.915 2.34 2.34 0 0 1 2.33 4.033 2.34 2.34 0 0 0 0 3.831 2.34 2.34 0 0 1-2.33 4.033 2.34 2.34 0 0 0-3.319 1.915 2.34 2.34 0 0 1-4.659 0 2.34 2.34 0 0 0-3.32-1.915 2.34 2.34 0 0 1-2.33-4.033 2.34 2.34 0 0 0 0-3.831A2.34 2.34 0 0 1 6.35 6.051a2.34 2.34 0 0 0 3.319-1.915"/><circle cx="12" cy="12" r="3"/></svg></button><div id="course-menu-items" class="popup-menu" role="menu" hidden><button id="refresh" type="button" role="menuitem">Atualizar curso</button><button id="remove" type="button" role="menuitem">Remover curso</button></div></div></div>
         </div>
         <div class="stats">
           <div class="card stat"><span class="eyebrow">AULAS CONCLUÍDAS</span><strong id="completed"></strong></div>
           <div class="card stat"><span class="eyebrow">TEMPO RESTANTE</span><strong id="remaining"></strong></div>
-          <div class="card stat"><span class="eyebrow">PROGRESSO</span><strong id="percent"></strong><progress id="bar" max="100"></progress></div>
+          <div class="card stat"><span class="eyebrow">PROGRESSO</span><div class="stat-progress"><strong id="percent"></strong><progress id="bar" max="100"></progress></div></div>
         </div>
         <div class="course-grid">
           <section class="card viewing">
@@ -114,10 +121,24 @@
     </form>
   </dialog>
   <dialog id="confirm-remove">
-    <form method="dialog"><h2>Remover curso?</h2><p>O catálogo e o progresso deste curso serão apagados deste PC.</p>
+    <form method="dialog"><h2>Remover curso?</h2><p>O catálogo e o progresso deste curso serão apagados deste PC. As anotações serão preservadas se você importar o curso novamente.</p>
       <div class="actions"><button value="cancel" class="secondary" autofocus>Cancelar</button><button value="remove" class="danger">Remover curso</button></div>
     </form>
   </dialog>
+  <dialog id="notebook" aria-labelledby="notebook-title" class="notebook-modal">
+    <div class="notebook-heading"><h2 id="notebook-title">Anotações</h2><div class="actions"><button type="button" id="note-toggle-list" class="quiet" aria-label="Recolher lista de anotações" title="Recolher lista de anotações" aria-expanded="true">☰</button><button type="button" id="note-new" class="primary">＋ Nova anotação</button><button type="button" id="notebook-close" class="quiet" aria-label="Fechar anotações">✕</button></div></div>
+    <div class="notebook-workspace"><aside id="notebook-list" class="notebook-list"><input type="search" id="note-search" placeholder="Buscar notas" aria-label="Buscar anotações"><label class="note-filter">Data <input type="date" id="note-date-filter" aria-label="Filtrar anotações por data"></label><div id="note-list"></div><small id="note-count"></small></aside>
+      <section class="notebook-document"><div id="note-empty" class="notebook-empty"><h2>Seu caderno</h2><p>Guarde aqui suas anotações deste curso.</p><button type="button" id="note-first" class="secondary">＋ Escrever primeira nota</button></div>
+        <div id="note-editor" hidden><div class="notebook-tools"><span id="note-status" role="status">Salvamento automático</span><div class="actions"><button type="button" id="note-image" class="quiet">Imagem</button><button type="button" id="note-sketch" class="quiet">Rabiscar</button><button type="button" id="note-pin" class="quiet" aria-pressed="false">Fixar</button><button type="button" id="note-delete" class="danger">Excluir</button></div></div>
+          <div class="notebook-paper"><div class="notebook-meta"><label>Data <input id="note-date" type="date"></label><label>Aula <select id="note-lesson" aria-label="Vincular anotação à aula"></select></label></div><input id="note-title-input" class="notebook-title" placeholder="Título" aria-label="Título da anotação" maxlength="160">
+            <div class="note-format" role="toolbar" aria-label="Formatação"><select id="note-heading" aria-label="Estilo do texto"><option value="p">Texto</option><option value="h1">Título 1</option><option value="h2">Título 2</option><option value="h3">Título 3</option></select><select id="note-size" aria-label="Tamanho da fonte"><option value="12">12 px</option><option value="14" selected>14 px</option><option value="16">16 px</option><option value="18">18 px</option><option value="20">20 px</option><option value="24">24 px</option><option value="28">28 px</option><option value="32">32 px</option></select><button type="button" data-format="bold" aria-label="Negrito"><b>N</b></button><button type="button" data-format="italic" aria-label="Itálico"><i>I</i></button><button type="button" data-format="underline" aria-label="Sublinhado"><u>S</u></button><label class="note-color" title="Cor do texto">Cor<input id="note-color" type="color" aria-label="Cor do texto" value="#777777"></label><button type="button" data-format="insertUnorderedList" aria-label="Lista com marcadores">• Lista</button><button type="button" data-format="insertOrderedList" aria-label="Lista numerada">1. Lista</button><button type="button" data-format="undo" aria-label="Desfazer">↶</button><button type="button" data-format="redo" aria-label="Refazer">↷</button></div>
+            <div id="note-content" class="notebook-text" contenteditable="true" role="textbox" aria-label="Texto da anotação" aria-multiline="true" data-placeholder="Escreva aqui…"></div>
+          </div><input type="file" id="note-image-file" accept="image/png,image/jpeg,image/webp" hidden>
+        </div>
+      </section></div>
+  </dialog>
+  <dialog id="note-delete-dialog"><h2>Excluir anotação?</h2><p>O texto e as imagens desta nota serão removidos.</p><div class="actions"><button type="button" id="note-delete-cancel" class="secondary">Cancelar</button><button type="button" id="note-delete-confirm" class="danger">Excluir anotação</button></div></dialog>
+  <dialog id="sketch-dialog"><h2>Rabiscar</h2><p>Desenhe com o mouse ou toque.</p><div class="sketch-tools"><label>Cor <input type="color" id="sketch-color" value="#222222"></label><label>Espessura <input type="range" id="sketch-width" min="1" max="20" value="3"></label></div><canvas id="sketch-canvas" width="800" height="420" aria-label="Área de desenho"></canvas><div class="actions"><button type="button" id="sketch-clear" class="secondary">Limpar</button><button type="button" id="sketch-cancel" class="secondary">Cancelar</button><button type="button" id="sketch-save" class="primary">Adicionar à nota</button></div></dialog>
   <dialog id="appearance" aria-labelledby="appearance-title">
     <form method="dialog">
       <h2 id="appearance-title">Preferências</h2>

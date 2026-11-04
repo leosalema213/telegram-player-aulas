@@ -14,6 +14,8 @@ contextBridge.exposeInMainWorld('player', {
   importCourse: id => ipcRenderer.invoke('import-course', id),
   removeCourse: id => ipcRenderer.invoke('remove-course', id),
   downloadDocument: (id, document) => ipcRenderer.invoke('download-document', id, document),
+  loadNotes: id => ipcRenderer.invoke('notes-load', id),
+  saveNotes: (id, notes) => ipcRenderer.invoke('notes-save', id, notes),
   progress: (id, lesson, position, done) => ipcRenderer.invoke('progress', id, lesson, position, done),
   openApi: () => ipcRenderer.invoke('open-api'),
   appVersion: () => ipcRenderer.invoke('app-version'),

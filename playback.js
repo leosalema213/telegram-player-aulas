@@ -13,7 +13,20 @@
       if (item) return { course, item };
     }
   }
-  const api = { validSpeed, findResume };
+  function dashboardMetrics(courses) {
+    let lessons = 0, completed = 0, finished = 0, total = 0, remaining = 0;
+    for (const course of courses) {
+      lessons += course.lessons.length;
+      if (course.lessons.length && course.lessons.every(lesson => lesson.done)) finished++;
+      for (const lesson of course.lessons) {
+        total += lesson.duration;
+        if (lesson.done) completed++;
+        else remaining += Math.max(0, lesson.duration - lesson.position);
+      }
+    }
+    return { lessons, completed, finished, total, remaining, percent: total ? Math.floor((total - remaining) / total * 100) : 0 };
+  }
+  const api = { validSpeed, findResume, dashboardMetrics };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else root.playbackUtils = api;
 })(globalThis);

@@ -11,5 +11,7 @@
 - [ ] Validar em um canal real a importação e atualização de documentos, download, arquivo indisponível e nova tentativa; confirmar que a atualização mantém o progresso existente. Os documentos são exibidos por curso e não são associados automaticamente a uma aula.
 - [ ] Validar em aulas reais a conclusão automática no fim, controles do player e velocidade entre aulas/cursos e após reiniciar. Medir consumo em uso contínuo com vídeo real.
 - [ ] Validar em canal real a retomada pausada da última aula ao abrir, as velocidades personalizadas e o modo teatro da prévia 0.1.1-preview.2.
+- [ ] Validar em cursos reais que a prévia 0.1.2-preview.2 prepara a aula de Continuar também ao trocar de curso e ao retornar da Tela inicial.
+- [ ] Validar anotações em cursos reais, incluindo falha de gravação e reimportação. O caderno usa editor próprio inspirado no Organon; a inserção de várias imagens de uma vez e a manipulação avançada de imagens ainda não têm paridade completa.
 - [ ] Confirmar preservação do perfil efetivamente usado pelo aplicativo instalado durante uma atualização: os testes anteriores de instalador conferiram arquivos artificiais, mas a variável APPDATA sozinha não garantiu o isolamento do perfil Electron.
 - [x] Confirmar acesso de escrita ao origin e publicar a primeira versão estável com instalador e SHA-256 após autorização do usuário.

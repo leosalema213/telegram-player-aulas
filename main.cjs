@@ -188,6 +188,30 @@ function setupHandlers(startupError) {
     await saveLibrary();
     return Object.values(courses);
   });
+  function notesFile(id) {
+    requireAccount();
+    if (typeof id !== 'string' || !/^-\d+$/.test(id) || !courses[id]) throw new Error('Curso indisponível.');
+    if (!/^(?:demo|\d+)$/.test(account)) throw new Error('Perfil indisponível.');
+    return path.join(directory, `anotacoes-${account}-${id}.json`);
+  }
+  bind('notes-load', async id => {
+    const file = notesFile(id);
+    const owner = account;
+    await writes.catch(() => {});
+    const data = await readFile(file);
+    if (owner !== account || !courses[id]) throw new Error('O curso ou a sessão mudou.');
+    if (!data) return [];
+    const parsed = JSON.parse(data);
+    if (!Array.isArray(parsed.notes)) throw new Error('Não foi possível ler as anotações.');
+    return parsed.notes;
+  });
+  bind('notes-save', async (id, notes) => {
+    const file = notesFile(id);
+    if (!Array.isArray(notes) || notes.length > 1000 || notes.some(n => !n || typeof n.id !== 'string' || typeof n.title !== 'string' || typeof n.html !== 'string' || typeof n.date !== 'string' || typeof n.pinned !== 'boolean')) throw new Error('Anotações inválidas.');
+    const value = { version: 1, notes };
+    if (Buffer.byteLength(JSON.stringify(value)) > 20 * 1024 * 1024) throw new Error('As anotações excedem o limite de 20 MB.');
+    await saveQueued(file, value);
+  });
   bind('download-document', async (courseId, documentId) => {
     requireAccount();
     const owner = account;
