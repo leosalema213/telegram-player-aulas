@@ -1,10 +1,11 @@
 # Repasse entre planejamento e execução
 
 **Lote atual:** navegação entre aulas no player
-**Estado:** Usuário autorizou a publicação estável 0.1.3
+**Estado:** Versão estável 0.1.3 publicada
 
 ## Resultado parcial da execução
 
+- Release `v0.1.3` publicada a partir do commit `8b1b8fe`. O canal real ofereceu a versão para instalações `0.1.2`, e os hashes do instalador e checksum publicados coincidiram. Retenção local manteve `0.1.3` e `0.1.3-preview.3`.
 - Versão estável `0.1.3` gerada após aprovação do usuário. Os 12 testes locais passaram; executável empacotado conferido em perfis isolados para ícones, barra lateral, navegação e setas; integridade do instalador conferida. Retenção local manteve `0.1.3` e `0.1.3-preview.3`.
 - Regra geral acrescentada: usar ícones Lucide, como no Organon, em vez de caracteres improvisados. Setas de navegação e outros controles receberam ícones da biblioteca; indicador de dados locais alinhado; Preferências e Desconectar permanecem acessíveis na sidebar recolhida. Testes em demonstração conferiram alinhamento, rótulos, sidebar, navegação e setas do vídeo. Instalador íntegro `release/0.1.3-preview.3/Player-de-Aulas-Instalar.exe`, SHA-256 `63acedc7e96154f41c93b818d4e19e1a535c30fb3ec48fcf31262041af80ace3`. Aguardando validação do usuário.
 - Atendendo ao pedido adicional, ao clicar no vídeo as setas esquerda/direita retrocedem/avançam cinco segundos, conforme a ajuda oficial do YouTube, sem interferir em outros controles. Executável empacotado testado com foco no vídeo, limites, modificadores, outros controles e modo teatro; navegação anterior/próxima também conferida. Instalador íntegro em `release/0.1.3-preview.2/Player-de-Aulas-Instalar.exe` (SHA-256 `af80abea7ddb594eeeafdafafcc9fd3ceee9ae1e4bae3a7f7844ed4589461131`). Aguardando validação do usuário antes da Release estável.
