@@ -58,6 +58,8 @@ select { appearance: none; width: 100%; min-width: 0; padding-right: 36px; backg
 select option:checked { color: var(--action-text); background: var(--action); }
 .text-link { min-height: 0; padding: 0; border: 0; background: transparent; color: var(--blue); text-decoration: underline; }
 button { cursor: pointer; }
+.ui-icon { display: block; width: 16px; height: 16px; flex: none; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.icon-label { display: inline-flex; align-items: center; justify-content: center; gap: 6px; }
 button:hover { background: var(--hover); }
 button:disabled { opacity: .5; cursor: wait; }
 :focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
@@ -69,7 +71,7 @@ button:disabled { opacity: .5; cursor: wait; }
 .sidebar-toggle { display: inline-flex; align-items: center; justify-content: center; width: 27px; min-width: 27px; height: 27px; min-height: 27px; padding: 4px; margin-left: auto; }
 .sidebar-toggle svg { width: 16px; height: 16px; flex: none; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
 .sidebar-collapsed .sidebar { padding-left: 8px; padding-right: 8px; }
-.sidebar-collapsed .brand-text, .sidebar-collapsed .brand-mark, .sidebar-collapsed .sidebar > .eyebrow, .sidebar-collapsed nav, .sidebar-collapsed #add, .sidebar-collapsed footer, .sidebar-collapsed .home-link span { display: none; }
+.sidebar-collapsed .brand-text, .sidebar-collapsed .brand-mark, .sidebar-collapsed .sidebar > .eyebrow, .sidebar-collapsed nav, .sidebar-collapsed #add, .sidebar-collapsed .footer-label, .sidebar-collapsed .home-link span { display: none; }
 .sidebar-collapsed .sidebar-toggle { justify-content: center; padding: 5px; }
 .sidebar-collapsed .brand { justify-content: center; }
 .sidebar-collapsed .sidebar-toggle { margin: 0; }
@@ -87,13 +89,16 @@ nav { display: grid; gap: 4px; }
 nav button { text-align: left; border-color: transparent; background: transparent; overflow-wrap: anywhere; }
 nav button[aria-current="true"] { background: var(--hover); border-color: var(--border); }
 footer { margin-top: auto; padding-top: 12px; border-top: 1px solid var(--border); display: grid; justify-items: start; }
-footer span { color: var(--green); font-size: 11px; }
 footer button { display: inline-flex; align-items: center; gap: 8px; }
 footer svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.sidebar-collapsed footer { justify-items: center; }
+.sidebar-collapsed footer button { justify-content: center; width: 34px; padding: 5px; }
 .topbar { height: 48px; display: flex; align-items: center; justify-content: space-between; padding: 0 160px 0 24px; border-bottom: 1px solid var(--border); background: var(--chrome); color: var(--muted); font-size: 12px; app-region: drag; }
 .topbar-actions { display: flex; align-items: center; gap: 10px; app-region: no-drag; }
-#connection { color: var(--green); font-size: 11px; white-space: nowrap; }
-#toggle-theme { min-width: var(--control-height); font-size: 16px; padding: 0; }
+#connection { display: inline-flex; align-items: center; gap: 6px; color: var(--green); font-size: 11px; line-height: 1; white-space: nowrap; }
+.connection-dot { width: 6px; height: 6px; flex: none; border-radius: 50%; background: currentColor; }
+#toggle-theme { display: inline-grid; place-items: center; min-width: var(--control-height); padding: 0; }
+#toggle-theme svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
 main { padding: 18px 24px; }
 .card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; }
 .onboarding { padding: 20px; max-width: 510px; }
@@ -143,6 +148,7 @@ progress { width: 100%; height: 5px; accent-color: var(--blue); }
 .speed-value input { width: 66px; min-width: 0; padding: 4px; text-align: right; font-size: 15px; }
 .speed-adjust { display: flex; align-items: center; gap: 8px; }
 .speed-adjust button { flex: none; width: 30px; height: 30px; min-height: 30px; padding: 0; border-radius: 50%; font-size: 18px; }
+.speed-adjust button { display: grid; place-items: center; }
 .speed-adjust input { flex: 1; min-width: 0; }
 .speed-presets { display: flex; flex-wrap: wrap; justify-content: center; gap: 5px; margin-top: 12px; }
 .speed-presets button { min-height: 28px; padding: 3px 8px; border-radius: 14px; }
@@ -157,8 +163,14 @@ progress { width: 100%; height: 5px; accent-color: var(--blue); }
 #poster img { width: 56px; height: 56px; object-fit: contain; }
 .player-info, .playlist-head { padding: 12px; }
 .player-info button { flex-shrink: 0; }
+.player-info > div:first-child { min-width: 0; overflow-wrap: anywhere; }
+.lesson-navigation { flex-wrap: wrap; }
+.lesson-navigation button { display: inline-flex; align-items: center; justify-content: center; gap: 4px; }
+.lesson-navigation svg { width: 15px; height: 15px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.lesson-navigation button:disabled { cursor: default; }
 .playlist-head input { min-width: 0; width: 65%; }
-#resume { margin: 0 12px 10px; width: calc(100% - 24px); text-align: left; }
+#resume { display: flex; align-items: center; gap: 6px; margin: 0 12px 10px; width: calc(100% - 24px); text-align: left; }
+#resume svg, .lesson-play svg { display: block; width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
 #lessons { max-height: min(58vh, 540px); overflow-y: auto; scrollbar-width: thin; }
 .chapter { padding: 8px 12px 4px; color: var(--muted); font-size: 11px; font-weight: 600; }
 .lesson { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; border-top: 1px solid var(--border); padding-left: 10px; }
@@ -189,6 +201,7 @@ dialog::backdrop { background: #0009; }
 .note-list-item { display: grid; width: 100%; gap: 4px; padding: 9px; text-align: left; border-color: transparent; background: transparent; }
 .note-list-item[aria-current="true"] { border-color: var(--border); background: var(--hover); }
 .note-list-item strong, .note-list-item span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.note-list-item strong .ui-icon { display: inline-block; width: 12px; height: 12px; margin-right: 4px; vertical-align: -2px; }
 .note-list-item span, .note-list-item small, #note-count { color: var(--muted); font-size: 10px; }
 .notebook-document { flex: 1; min-width: 0; min-height: 0; overflow: auto; background: var(--surface); }
 .notebook-empty { display: grid; place-content: center; justify-items: center; height: 100%; }
@@ -200,7 +213,7 @@ dialog::backdrop { background: #0009; }
 .notebook-meta input, .notebook-meta select { width: auto; max-width: 210px; }
 .notebook-title { width: 100%; padding: 16px 0; font-size: 24px; font-weight: 600; border: 0; background: transparent; }
 .note-format { display: flex; flex-wrap: wrap; gap: 3px; border-bottom: 1px solid var(--border); }
-.note-format button { min-width: 30px; padding: 4px 7px; border-color: transparent; background: transparent; }
+.note-format button { display: inline-grid; place-items: center; min-width: 30px; padding: 4px 7px; border-color: transparent; background: transparent; }
 .note-format select { width: 96px; }
 #note-size { width: 76px; }
 .note-color { display: inline-flex; align-items: center; gap: 4px; color: var(--muted); font-size: 11px; }
@@ -228,5 +241,6 @@ dialog::backdrop { background: #0009; }
   .dashboard-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   main { padding: 16px; }
 }
+@media (max-width: 680px) { .player-info { align-items: flex-start; flex-direction: column; } .lesson-navigation { justify-content: flex-start; } }
 @media (max-width: 650px) { .notebook-list { flex-basis: 150px; } .notebook-paper { padding: 16px; } .notebook-tools { flex-wrap: wrap; } }
 @media (max-width: 560px) { #volume { display: none; } .player-controls { gap: 4px; } }

@@ -7,7 +7,7 @@ let lastSaved = 0;
 let restoring = false;
 let view = 'course';
 let playbackSpeed = 1;
-const playIcon = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 3 14 9-14 9z"/></svg>';
+const playIcon = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 5a2 2 0 0 1 3.008-1.728l11.997 6.998a2 2 0 0 1 .003 3.458l-12 7A2 2 0 0 1 5 19z"/></svg>';
 const pauseIcon = '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="4" width="4" height="16" rx="1"/><rect x="15" y="4" width="4" height="16" rx="1"/></svg>';
 const volumeIcon = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m11 5-6 4H2v6h3l6 4z"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07M19.07 4.93a10 10 0 0 1 0 14.14"/></svg>';
 const mutedIcon = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m11 5-6 4H2v6h3l6 4zM22 9l-6 6m0-6 6 6"/></svg>';
@@ -56,7 +56,7 @@ function render() {
   $('home').setAttribute('aria-current', view === 'dashboard' ? 'page' : 'false');
   $('add').hidden = !library.connected;
   $('disconnect').hidden = !library.connected || library.demo;
-  $('connection').textContent = library.demo ? '● Modo demonstração' : '● Dados locais';
+  $('connection-label').textContent = library.demo ? 'Modo demonstração' : 'Dados locais';
   $('courses').replaceChildren(...library.courses.map(item => {
     const entry = button(item.title, () => selectCourse(item), 'course-link');
     if (item === course && view === 'course') entry.setAttribute('aria-current', 'true');
@@ -70,7 +70,9 @@ function render() {
   renderDocuments();
   $('now-title').textContent = lesson?.title || 'Sala de reprodução';
   $('now-chapter').textContent = lesson?.chapter || '';
-  $('toggle-done').hidden = !lesson;
+  $('lesson-navigation').hidden = !lesson;
+  $('previous-lesson').disabled = !window.playbackUtils.adjacentLesson(course, lesson, -1);
+  $('next-lesson').disabled = !window.playbackUtils.adjacentLesson(course, lesson, 1);
   $('toggle-done').textContent = lesson?.done ? 'Reabrir aula' : 'Concluir aula';
 }
 
@@ -106,7 +108,8 @@ function renderStats() {
   const next = window.playbackUtils.findResume([course])?.item;
   $('resume').hidden = !next;
   if (next) {
-    $('resume').textContent = next.position > 0 ? `▷ Continuar em ${duration(next.position)}` : '▷ Assistir próxima aula';
+    $('resume').innerHTML = playIcon;
+    $('resume').append(document.createTextNode(next.position > 0 ? `Continuar em ${duration(next.position)}` : 'Assistir próxima aula'));
     $('resume').onclick = () => selectLesson(next);
   }
 }
@@ -149,7 +152,7 @@ function renderLessons() {
     };
     const play = button('', () => selectLesson(item), 'lesson-play');
     const icon = document.createElement('span');
-    icon.textContent = '▷';
+    icon.innerHTML = playIcon;
     icon.setAttribute('aria-hidden', 'true');
     const title = document.createElement('span');
     title.textContent = item.title;
@@ -307,7 +310,13 @@ function togglePlayback() {
   else video.pause();
 }
 $('play-pause').onclick = togglePlayback;
-video.onclick = togglePlayback;
+video.onclick = () => { video.focus({ preventScroll: true }); togglePlayback(); };
+video.onkeydown = event => {
+  if (!['ArrowLeft', 'ArrowRight'].includes(event.key) || event.altKey || event.ctrlKey || event.metaKey || event.shiftKey || !lesson || restoring || video.error || !Number.isFinite(video.duration) || video.duration <= 0) return;
+  event.preventDefault();
+  const position = window.playbackUtils.arrowSeek(video.currentTime, video.duration, event.key);
+  if (position !== undefined) video.currentTime = position;
+};
 $('seek').oninput = event => {
   const length = Number.isFinite(video.duration) ? video.duration : 0;
   if (length > 0) video.currentTime = Number(event.target.value) / 1000 * length;
@@ -390,6 +399,12 @@ $('toggle-done').onclick = () => {
   saveProgress(!lesson.done);
   render();
 };
+function navigateLesson(offset) {
+  const target = window.playbackUtils.adjacentLesson(course, lesson, offset);
+  if (target) selectLesson(target);
+}
+$('previous-lesson').onclick = () => navigateLesson(-1);
+$('next-lesson').onclick = () => navigateLesson(1);
 
 async function initialize() {
   const settings = await window.player.playbackSettings().catch(() => { notice('Não foi possível ler a velocidade salva.'); return { speed: 1 }; });

@@ -41,7 +41,9 @@
     $('note-list').replaceChildren(...shown.map(item => {
       const button = document.createElement('button'); button.type = 'button'; button.className = 'note-list-item';
       if (item.id === selected) button.setAttribute('aria-current', 'true');
-      const title = document.createElement('strong'); title.textContent = `${item.pinned ? '● ' : ''}${item.title || 'Sem título'}`;
+      const title = document.createElement('strong');
+      if (item.pinned) title.innerHTML = '<svg class="ui-icon" viewBox="0 0 24 24" aria-label="Fixada"><path d="M12 17v5M9 10.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V7a1 1 0 0 1 1-1 2 2 0 0 0 0-4H8a2 2 0 0 0 0 4 1 1 0 0 1 1 1z"/></svg>';
+      title.append(document.createTextNode(item.title || 'Sem título'));
       const preview = document.createElement('span'); preview.textContent = textOf(item.html).trim().slice(0, 90) || (item.html.includes('<img') ? 'Anotação com imagem' : 'Sem texto');
       const time = document.createElement('small'); time.textContent = item.date.split('-').reverse().join('/');
       button.append(title, preview, time); button.onclick = () => { selected = item.id; render(); }; return button;

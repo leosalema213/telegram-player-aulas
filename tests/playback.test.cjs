@@ -1,6 +1,6 @@
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
-const { validSpeed, findResume, dashboardMetrics } = require('../playback.js');
+const { validSpeed, findResume, dashboardMetrics, adjacentLesson, arrowSeek } = require('../playback.js');
 
 test('aceita velocidades personalizadas de 0,25 a 2 com até duas casas', () => {
   for (const speed of [0.25, 1, 1.2, 1.43, 2]) assert.equal(validSpeed(speed), true);
@@ -30,4 +30,21 @@ test('ao trocar de curso escolhe a retomada do próprio curso ou a primeira aula
   assert.equal(findResume([course]).item.id, 1);
   course.lessons[0].done = true;
   assert.equal(findResume([course]), undefined);
+});
+test('navega pela ordem do curso sem ultrapassar os limites', () => {
+  const course = { lessons: [{ id: 1 }, { id: 2, done: true }, { id: 3 }] };
+  assert.equal(adjacentLesson(course, course.lessons[0], -1), undefined);
+  assert.equal(adjacentLesson(course, course.lessons[0], 1).id, 2);
+  assert.equal(adjacentLesson(course, course.lessons[1], 1).id, 3);
+  assert.equal(adjacentLesson(course, course.lessons[2], 1), undefined);
+  assert.equal(adjacentLesson(course, { id: 99 }, 1), undefined);
+  assert.equal(adjacentLesson(course, course.lessons[0], 2), undefined);
+});
+test('setas avançam ou voltam cinco segundos respeitando os limites', () => {
+  assert.equal(arrowSeek(10, 30, 'ArrowRight'), 15);
+  assert.equal(arrowSeek(10, 30, 'ArrowLeft'), 5);
+  assert.equal(arrowSeek(2, 30, 'ArrowLeft'), 0);
+  assert.equal(arrowSeek(28, 30, 'ArrowRight'), 30);
+  assert.equal(arrowSeek(10, NaN, 'ArrowRight'), undefined);
+  assert.equal(arrowSeek(10, 30, 'ArrowUp'), undefined);
 });

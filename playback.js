@@ -26,7 +26,16 @@
     }
     return { lessons, completed, finished, total, remaining, percent: total ? Math.floor((total - remaining) / total * 100) : 0 };
   }
-  const api = { validSpeed, findResume, dashboardMetrics };
+  function adjacentLesson(course, lesson, offset) {
+    if (!course || !lesson || ![-1, 1].includes(offset)) return undefined;
+    const index = course.lessons.findIndex(item => item.id === lesson.id);
+    return index < 0 ? undefined : course.lessons[index + offset];
+  }
+  function arrowSeek(position, duration, key) {
+    if (!Number.isFinite(position) || !Number.isFinite(duration) || duration <= 0 || !['ArrowLeft', 'ArrowRight'].includes(key)) return undefined;
+    return Math.max(0, Math.min(duration, position + (key === 'ArrowRight' ? 5 : -5)));
+  }
+  const api = { validSpeed, findResume, dashboardMetrics, adjacentLesson, arrowSeek };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else root.playbackUtils = api;
 })(globalThis);
