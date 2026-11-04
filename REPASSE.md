@@ -1,10 +1,11 @@
 # Repasse entre planejamento e execução
 
 **Lote atual:** tela inicial, anotações por curso e ajustes de navegação
-**Estado:** Usuário aprovou a prévia e autorizou a publicação estável 0.1.2
+**Estado:** Versão estável 0.1.2 publicada
 
 ## Resultado parcial da execução
 
+- Release estável `v0.1.2` publicada a partir do commit `b5bc3b5`. Instalador e SHA-256 conferidos no GitHub; o atualizador detectou a versão para instalações `0.1.1`. Permanecem localmente apenas as pastas de versão `0.1.2` e `0.1.2-preview.2`; perfis e releases no GitHub foram preservados.
 - Usuário autorizou a produção e determinou retenção local de duas versões. `0.1.2` estável gerada e verificada; testes do executável em perfil isolado cobriram retomada, dashboard e anotações. Após a geração, o script de limpeza preservou `0.1.2` e `0.1.2-preview.2` e removeu apenas as demais pastas de versão locais. Perfis de teste e releases no GitHub não foram removidos.
 - Correção relatada pelo usuário: ao selecionar um curso ou voltar da Tela inicial, o player agora prepara pausada a mesma aula de **Continuar**, ou a primeira pendente. Testados três cursos em perfil isolado, incluindo troca, retorno pela Tela inicial e ausência de progresso; dashboard e caderno também passaram no executável empacotado. Instalador `release/0.1.2-preview.2/Player-de-Aulas-Instalar.exe` íntegro; SHA-256 `cae36c3a878c88b09b1ed545f4eb5826548a7334774804f3a0f3a2b114cd791f`. Não foi instalado sobre o aplicativo em uso.
 - Instalador de prévia `release/0.1.2-preview.1/Player-de-Aulas-Instalar.exe` gerado; SHA-256 `679b2f0e654a27e47f186fb06393033c2e9f8f8bbe00b9bd253dd462be930a90`. Integridade NSIS e arquivos empacotados conferidos. O executável final passou no teste de interface com perfil isolado, incluindo criação e formatação, imagens, desenho, falha de gravação com nova tentativa, atualização, remoção/reimportação e persistência das notas. Não foi instalado sobre o aplicativo em uso; aguardam validação do usuário e teste de conta real.
