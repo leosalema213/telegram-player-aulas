@@ -1,8 +1,10 @@
 # Repasse entre planejamento e execução
 
-**Lote atual:** limpeza do cache de atualizações e playlist por curso
-**Estado:** Prévia aprovada para publicação estável
-**Base:** 0.1.3 estável. Prévia atual 0.1.4-preview.7.
+**Lote atual:** alinhar a lista de aulas ao player e aproximar os materiais
+**Estado:** Publicação estável 0.1.5 autorizada pelo usuário.
+**Base:** 0.1.4 estável. Prévia aprovada 0.1.5-preview.1.
+
+- Promoção 0.1.5 autorizada pelo usuário. Os 13 testes passaram novamente; pacote e versão do instalador estável foram conferidos. SHA-256: `3596962CF25F037861DE3BF25096595BDF7B9BBC8E66F9E89C45DD7C8FB3F01F`. Retenção local: 0.1.5 e 0.1.5-preview.1.
 
 ## Limpeza após atualização
 
@@ -22,6 +24,9 @@
 - Rode `npm.cmd run check`, gere a prévia com `npm.cmd run dist` e confira o pacote, a integridade e o SHA-256 do instalador. Após validação, use o script de retenção para manter a nova prévia e a versão anterior com instalador. Entregue o caminho e os resultados ao usuário. A promoção, o commit, o push e a publicação estável dependem do aval explícito para este lote.
 
 ## Resultado da execução
+
+- A prévia 0.1.5-preview.1 limita a coluna de aulas à altura do player usando contenção de tamanho no CSS e rolagem interna. Os materiais ficam 12 px abaixo das duas colunas. Abaixo de 901 px, a lista continua embaixo do vídeo com altura limitada. Nenhum fluxo ou dado de perfil foi alterado. Os 13 testes locais passaram; a demonstração Electron com perfil temporário conferiu 100 aulas, acesso ao fim da lista, alinhamento em 1440/1120/901 px, empilhamento em 900/780 px, busca sem resultados e modo teatro. Validar o resultado em curso real antes da promoção.
+- Instalador 0.1.5-preview.1 gerado e conferido: arquivos do pacote idênticos aos fontes, versão do executável correta, SHA-256 `CF24AC4A0CEC33638DD5D58C268E91CAB372BFA5532E1DE9BD13CB8862E54D8B`. A retenção manteve 0.1.5-preview.1 e 0.1.4. Não houve publicação estável; instalação e teste no perfil real ficam para o usuário.
 
 - A prévia 0.1.4-preview.7 aplica as cores do tema ao cabeçalho, alinha os pop-ups da Biblioteca à direita do botão quando há espaço e compacta os menus de opções e os formulários de edição e exclusão. A Biblioteca compartilha o seletor de velocidade das aulas e mostra um quadrado preenchido no botão de parar.
 

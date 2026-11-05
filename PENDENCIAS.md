@@ -1,5 +1,7 @@
 # Pendências
 
+- [ ] Validar a prévia 0.1.5-preview.1 em curso real: lista de aulas alinhada à altura do player, materiais logo abaixo, busca, rolagem até a última aula, redimensionamento e modo teatro.
+
 - [ ] Validar login com código, login com duas etapas, reconexão e desconexão em uma conta de teste.
 - [ ] Importar um canal real e conferir títulos, duração e sequência dos capítulos. Testar a reprodução e o salto para o meio de um vídeo grande.
 - [ ] Conferir os termos da API antes de distribuir, incluindo API ID próprio, apresentação da integração e suporte a mensagens patrocinadas em canais. [Termos da API do Telegram](https://core.telegram.org/api/terms)
