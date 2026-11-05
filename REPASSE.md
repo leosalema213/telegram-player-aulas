@@ -1,8 +1,8 @@
 # Repasse entre planejamento e execução
 
 **Lote atual:** alinhar a lista de aulas ao player e aproximar os materiais
-**Estado:** Publicação estável 0.1.5 autorizada pelo usuário.
-**Base:** 0.1.4 estável. Prévia aprovada 0.1.5-preview.1.
+**Estado:** Versão estável 0.1.5 publicada e canal de atualização conferido.
+**Base:** 0.1.5 estável, promovida da prévia aprovada 0.1.5-preview.1.
 
 - Promoção 0.1.5 autorizada pelo usuário. Os 13 testes passaram novamente; pacote e versão do instalador estável foram conferidos. SHA-256: `3596962CF25F037861DE3BF25096595BDF7B9BBC8E66F9E89C45DD7C8FB3F01F`. Retenção local: 0.1.5 e 0.1.5-preview.1.
 
@@ -43,6 +43,8 @@
 - A prévia `0.1.4-preview.3` substituiu a modal por pop-up contextual com nome, cor amarela padrão, paleta neutra, criação de subpastas, edição e exclusão. O seletor de arquivos agora pede a pasta de destino. `npm.cmd run check` passou com 13 testes, o pacote foi conferido e o instalador tem SHA-256 `A529E7C01E6C8A4D826496B4FA83205C935056EDA315B56ACBFBEDCE49DA350E`. A retenção local manteve `0.1.4-preview.3` e `0.1.4-preview.2`.
 
 ## Histórico de execução
+
+- Release [v0.1.5](https://github.com/leosalema213/telegram-player-aulas/releases/tag/v0.1.5) publicada após autorização do usuário, a partir do commit `f237f56`. O atualizador real em 0.1.4 encontrou 0.1.5; tamanho, digest remoto e arquivo SHA-256 conferem com o instalador local. Retenção: 0.1.5 e 0.1.5-preview.1.
 
 - Release `v0.1.3` publicada a partir do commit `8b1b8fe`. O canal real ofereceu a versão para instalações `0.1.2`, e os hashes do instalador e checksum publicados coincidiram. Retenção local manteve `0.1.3` e `0.1.3-preview.3`.
 - Versão estável `0.1.3` gerada após aprovação do usuário. Os 12 testes locais passaram; executável empacotado conferido em perfis isolados para ícones, barra lateral, navegação e setas; integridade do instalador conferida. Retenção local manteve `0.1.3` e `0.1.3-preview.3`.
