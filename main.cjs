@@ -17,6 +17,7 @@ app.setName(demo ? 'Player de Aulas Demo' : 'Player de Aulas');
 if (demo && process.env.PLAYER_DEMO_USER_DATA) app.setPath('userData', path.resolve(process.env.PLAYER_DEMO_USER_DATA));
 protocol.registerSchemesAsPrivileged([
   { scheme: 'lesson', privileges: { standard: true, secure: true, stream: true, supportFetchAPI: true } },
+  { scheme: 'media', privileges: { standard: true, secure: true, stream: true, supportFetchAPI: true } },
 ]);
 
 const directory = app.getPath('userData');
@@ -75,6 +76,51 @@ function selectedLesson(courseId, lessonId) {
   return courses[courseId]?.lessons.find(lesson => lesson.id === lessonId);
 }
 
+const PLAYLIST_TYPES = {
+  '.mp3': ['audio', 'audio/mpeg'], '.m4a': ['audio', 'audio/mp4'], '.wav': ['audio', 'audio/wav'],
+  '.ogg': ['audio', 'audio/ogg'], '.mp4': ['video', 'video/mp4'], '.webm': ['video', 'video/webm'],
+  '.mov': ['video', 'video/quicktime'], '.png': ['image', 'image/png'], '.jpg': ['image', 'image/jpeg'],
+  '.jpeg': ['image', 'image/jpeg'], '.webp': ['image', 'image/webp'], '.gif': ['image', 'image/gif'],
+};
+
+function playlistPaths(id) {
+  requireAccount();
+  id = String(id);
+  if (!/^-\d+$/.test(id) || !courses[id]) throw new Error('Curso indisponível.');
+  if (!/^(?:demo|\d+)$/.test(account)) throw new Error('Perfil indisponível.');
+  return {
+    index: path.join(directory, `playlist-${account}-${id}.json`),
+    media: path.join(directory, `playlist-${account}-${id}`),
+  };
+}
+async function readPlaylist(id) {
+  const { index } = playlistPaths(id);
+  const data = await readFile(index);
+  if (!data) return { version: 1, folders: [{ id: 'root', name: 'Playlist', parent: null }], items: [] };
+  const parsed = JSON.parse(data);
+  if (!Array.isArray(parsed.folders) || !Array.isArray(parsed.items) || !parsed.folders.some(folder => folder?.id === 'root' && folder.parent === null)) throw new Error('Não foi possível ler a playlist deste curso.');
+  return parsed;
+}
+function validatePlaylist(data) {
+  if (!data || !Array.isArray(data.folders) || !Array.isArray(data.items) || data.folders.length > 300 || data.items.length > 1000) throw new Error('Playlist inválida.');
+  const ids = new Set();
+  for (const folder of data.folders) {
+    if (!folder || typeof folder.id !== 'string' || ids.has(folder.id) || typeof folder.name !== 'string' || folder.name.length > 160 || (folder.parent !== null && typeof folder.parent !== 'string') || (folder.color !== undefined && !/^#[0-9a-f]{6}$/i.test(folder.color))) throw new Error('Pastas inválidas.');
+    ids.add(folder.id);
+  }
+  if (!ids.has('root') || data.folders.some(folder => folder.id !== 'root' && !ids.has(folder.parent))) throw new Error('Pastas inválidas.');
+  const names = new Set();
+  for (const item of data.items) {
+    if (!item || typeof item.id !== 'string' || names.has(item.id) || !ids.has(item.folderId) || typeof item.name !== 'string' || item.name.length > 180 || !['audio', 'video', 'image'].includes(item.type) || !/^[a-f0-9-]+\.[a-z0-9]+$/i.test(item.file)) throw new Error('Arquivos inválidos.');
+    names.add(item.id);
+  }
+}
+async function savePlaylist(id, data) {
+  validatePlaylist(data);
+  const { index } = playlistPaths(id);
+  await saveQueued(index, data);
+}
+
 const sampleChannel = { id: '-100123', title: 'Administração de Redes Linux' };
 const sampleLessons = [
   { id: 22, title: '#F22 Comando MTR', chapter: 'Capítulo 6 · Ferramentas de conexão', duration: 30 },
@@ -95,6 +141,12 @@ function bind(name, action) {
 }
 
 function setupHandlers(startupError) {
+  bind('window-minimize', () => { window.minimize(); });
+  bind('window-maximize', () => {
+    if (window.isMaximized()) window.unmaximize();
+    else window.maximize();
+  });
+  bind('window-close', () => { window.close(); });
   bind('open-api', () => shell.openExternal('https://my.telegram.org/apps'));
   bind('update-status', () => updater?.state);
   bind('app-version', () => app.getVersion());
@@ -212,6 +264,99 @@ function setupHandlers(startupError) {
     if (Buffer.byteLength(JSON.stringify(value)) > 20 * 1024 * 1024) throw new Error('As anotações excedem o limite de 20 MB.');
     await saveQueued(file, value);
   });
+  bind('playlist-load', async id => {
+    const owner = account;
+    const playlist = await readPlaylist(id);
+    if (owner !== account || !courses[id]) throw new Error('O curso ou a sessão mudou.');
+    return playlist;
+  });
+  bind('playlist-import', async (id, folderId = 'root') => {
+    const owner = account;
+    const playlist = await readPlaylist(id);
+    if (!playlist.folders.some(folder => folder.id === folderId)) throw new Error('Pasta indisponível.');
+    const result = await dialog.showOpenDialog(window, {
+      title: 'Adicionar à playlist', properties: ['openFile', 'multiSelections'],
+      filters: [{ name: 'Mídias', extensions: Object.keys(PLAYLIST_TYPES).map(extension => extension.slice(1)) }],
+    });
+    if (result.canceled || !result.filePaths.length) return playlist;
+    const paths = playlistPaths(id);
+    await fs.mkdir(paths.media, { recursive: true });
+    const added = [];
+    try {
+      for (const source of result.filePaths) {
+        const extension = path.extname(source).toLowerCase();
+        const media = PLAYLIST_TYPES[extension];
+        const stat = await fs.stat(source);
+        if (!media || !stat.isFile() || stat.size > 2 * 1024 ** 3) throw new Error('Escolha áudios, vídeos ou imagens de até 2 GB.');
+        const item = { id: randomUUID(), name: path.basename(source).slice(0, 180), type: media[0], mime: media[1], size: stat.size, folderId, file: `${randomUUID()}${extension}` };
+        const target = path.join(paths.media, item.file);
+        await fs.copyFile(source, target, fs.constants.COPYFILE_EXCL);
+        playlist.items.push(item);
+        added.push(target);
+      }
+      if (owner !== account || !courses[id]) throw new Error('O curso ou a sessão mudou durante a importação.');
+      await savePlaylist(id, playlist);
+      return playlist;
+    } catch (error) {
+      await Promise.all(added.map(file => fs.rm(file, { force: true })));
+      throw error;
+    }
+  });
+  bind('playlist-folder-create', async (id, parent, name, color = '#d6b55b') => {
+    const playlist = await readPlaylist(id);
+    name = typeof name === 'string' ? name.trim() : '';
+    if (!name || name.length > 160 || /[\\/:*?"<>|]/.test(name)) throw new Error('Informe um nome de pasta válido.');
+    if (!playlist.folders.some(folder => folder.id === parent)) throw new Error('Pasta indisponível.');
+    if (!/^#[0-9a-f]{6}$/i.test(color)) throw new Error('Escolha uma cor válida para a pasta.');
+    playlist.folders.push({ id: randomUUID(), name, parent, color });
+    await savePlaylist(id, playlist);
+    return playlist;
+  });
+  bind('playlist-folder-update', async (id, folderId, name, color) => {
+    const playlist = await readPlaylist(id);
+    const folder = playlist.folders.find(entry => entry.id === folderId);
+    name = typeof name === 'string' ? name.trim() : '';
+    if (!folder || folder.id === 'root' || !name || name.length > 160 || /[\\/:*?"<>|]/.test(name) || !/^#[0-9a-f]{6}$/i.test(color)) throw new Error('Confira o nome e a cor da pasta.');
+    folder.name = name; folder.color = color;
+    await savePlaylist(id, playlist);
+    return playlist;
+  });
+  bind('playlist-move', async (id, itemId, folderId, direction) => {
+    const playlist = await readPlaylist(id);
+    if (!playlist.folders.some(folder => folder.id === folderId)) throw new Error('Pasta indisponível.');
+    const item = playlist.items.find(entry => entry.id === itemId);
+    if (!item) throw new Error('Arquivo indisponível.');
+    if (direction === 'folder') item.folderId = folderId;
+    else {
+      const entries = playlist.items.filter(entry => entry.folderId === item.folderId);
+      const index = entries.indexOf(item), destination = index + (direction === 'up' ? -1 : 1);
+      if (!['up', 'down'].includes(direction) || destination < 0 || destination >= entries.length) return playlist;
+      const other = entries[destination], first = playlist.items.indexOf(item), second = playlist.items.indexOf(other);
+      [playlist.items[first], playlist.items[second]] = [playlist.items[second], playlist.items[first]];
+    }
+    await savePlaylist(id, playlist);
+    return playlist;
+  });
+  bind('playlist-delete', async (id, kind, entryId) => {
+    const playlist = await readPlaylist(id);
+    const paths = playlistPaths(id);
+    let removed = [];
+    if (kind === 'item') {
+      const item = playlist.items.find(entry => entry.id === entryId);
+      if (!item) throw new Error('Arquivo indisponível.');
+      playlist.items = playlist.items.filter(entry => entry !== item); removed = [item];
+    } else {
+      if (entryId === 'root' || !playlist.folders.some(folder => folder.id === entryId)) throw new Error('Pasta indisponível.');
+      const folders = new Set([entryId]);
+      for (let changed = true; changed;) { changed = false; for (const folder of playlist.folders) if (folders.has(folder.parent) && !folders.has(folder.id)) { folders.add(folder.id); changed = true; } }
+      removed = playlist.items.filter(item => folders.has(item.folderId));
+      playlist.items = playlist.items.filter(item => !folders.has(item.folderId));
+      playlist.folders = playlist.folders.filter(folder => !folders.has(folder.id));
+    }
+    await savePlaylist(id, playlist);
+    await Promise.all(removed.map(item => fs.rm(path.join(paths.media, item.file), { force: true })));
+    return playlist;
+  });
   bind('download-document', async (courseId, documentId) => {
     requireAccount();
     const owner = account;
@@ -295,6 +440,29 @@ async function streamLesson(request) {
   }
 }
 
+async function streamPlaylistMedia(request) {
+  const url = new URL(request.url);
+  const match = /^\/(-\d+)\/([\w-]+)$/.exec(url.pathname);
+  if (url.hostname !== 'playlist' || !match || !account || !courses[match[1]]) return new Response(null, { status: 404 });
+  try {
+    const playlist = await readPlaylist(match[1]);
+    const item = playlist.items.find(entry => entry.id === match[2]);
+    if (!item) return new Response(null, { status: 404 });
+    const { media } = playlistPaths(match[1]);
+    const file = path.resolve(media, item.file);
+    if (path.dirname(file) !== path.resolve(media)) return new Response(null, { status: 404 });
+    const stat = await fs.stat(file);
+    const bounds = byteRange(request.headers.get('range'), stat.size);
+    if (!bounds) return new Response(null, { status: 416, headers: { 'Content-Range': `bytes */${stat.size}` } });
+    const [start, end] = bounds;
+    const headers = { 'Content-Type': item.mime || 'application/octet-stream', 'Content-Length': String(end - start + 1), 'Accept-Ranges': 'bytes', 'Cache-Control': 'no-store' };
+    if (request.headers.get('range')) headers['Content-Range'] = `bytes ${start}-${end}/${stat.size}`;
+    return new Response(Readable.toWeb(createReadStream(file, { start, end })), { status: request.headers.get('range') ? 206 : 200, headers });
+  } catch {
+    return new Response(null, { status: 404 });
+  }
+}
+
 async function start() {
   let startupError;
   try {
@@ -320,10 +488,11 @@ async function start() {
   }
   setupHandlers(startupError);
   protocol.handle('lesson', streamLesson);
+  protocol.handle('media', streamPlaylistMedia);
   window = new BrowserWindow({
     width: 1120, height: 780, minWidth: 780, minHeight: 540, backgroundColor: '#101010',
     icon: path.join(__dirname, 'assets', 'icon.ico'),
-    titleBarStyle: 'hidden', titleBarOverlay: { color: '#141414', symbolColor: '#ededed', height: 48 },
+    frame: false,
     webPreferences: { preload: path.join(__dirname, 'preload.cjs'), sandbox: true, contextIsolation: true },
   });
   window.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));

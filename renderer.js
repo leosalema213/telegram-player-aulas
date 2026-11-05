@@ -7,6 +7,14 @@ let lastSaved = 0;
 let restoring = false;
 let view = 'course';
 let playbackSpeed = 1;
+let playlistData;
+const expandedFolders = new Set();
+let popupAnchor;
+let playlistMode = 'list';
+let activeAudioId;
+const libraryAudio = $('media-audio');
+let playlistPopupFolder;
+let playlistFolderEditing;
 const playIcon = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 5a2 2 0 0 1 3.008-1.728l11.997 6.998a2 2 0 0 1 .003 3.458l-12 7A2 2 0 0 1 5 19z"/></svg>';
 const pauseIcon = '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="4" width="4" height="16" rx="1"/><rect x="15" y="4" width="4" height="16" rx="1"/></svg>';
 const volumeIcon = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m11 5-6 4H2v6h3l6 4z"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07M19.07 4.93a10 10 0 0 1 0 14.14"/></svg>';
@@ -47,6 +55,13 @@ function button(text, action, className) {
   return item;
 }
 
+function iconButton(label, path, action, className = 'quiet') {
+  const item = button('', action, className);
+  item.setAttribute('aria-label', label); item.title = label;
+  item.innerHTML = `<svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="${path}"/></svg>`;
+  return item;
+}
+
 function render() {
   $('login').hidden = library.connected;
   $('empty').hidden = !library.connected || !!course || view === 'dashboard';
@@ -68,6 +83,7 @@ function render() {
   renderStats();
   renderLessons();
   renderDocuments();
+  renderPlaylist();
   $('now-title').textContent = lesson?.title || 'Sala de reprodução';
   $('now-chapter').textContent = lesson?.chapter || '';
   $('lesson-navigation').hidden = !lesson;
@@ -198,6 +214,142 @@ function renderDocuments() {
   }));
 }
 
+function playlistItems(folderId) {
+  return (playlistData?.items || []).filter(item => item.folderId === folderId);
+}
+
+function mediaUrl(item) {
+  return `media://playlist/${encodeURIComponent(course.id)}/${encodeURIComponent(item.id)}`;
+}
+
+function renderPlaylist() {
+  const folders = playlistData?.folders || [];
+  if (!playlistData) return;
+  if (activeAudioId && !playlistData.items.some(item => item.id === activeAudioId)) stopLibraryAudio();
+  $('playlist-list').setAttribute('aria-pressed', String(playlistMode === 'list'));
+  $('playlist-gallery').setAttribute('aria-pressed', String(playlistMode === 'gallery'));
+  if (speedAnchor?.classList.contains('library-speed')) showSpeedMenu(false);
+  $('playlist-media').replaceChildren(renderPlaylistBranch('root', folders));
+  syncAudioControls();
+}
+
+function renderPlaylistBranch(folderId, folders) {
+  const branch = document.createElement('div');
+  branch.className = 'playlist-branch';
+  for (const folder of folders.filter(entry => entry.parent === folderId)) {
+    const entry = document.createElement('div'); entry.className = 'playlist-folder';
+    entry.style.setProperty('--folder-color', folder.color || '#d6b55b');
+    const expanded = expandedFolders.has(folder.id);
+    const open = iconButton(folder.name, expanded ? 'm6 9 6 6 6-6' : 'm9 18 6-6-6-6', () => {
+      hidePlaylistPopup();
+      if (expanded) expandedFolders.delete(folder.id);
+      else expandedFolders.add(folder.id);
+      renderPlaylist();
+      document.getElementById(`folder-${folder.id}`)?.focus({ preventScroll: true });
+    }, 'quiet icon-label');
+    open.id = `folder-${folder.id}`;
+    open.setAttribute('aria-expanded', String(expanded));
+    const icon = document.createElement('span');
+    icon.className = 'folder-symbol';
+    icon.innerHTML = '<svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 20H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h4l2 2h10a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2Z"/></svg>';
+    open.append(icon, document.createTextNode(folder.name));
+    const add = iconButton('Adicionar à pasta', 'M12 5v14M5 12h14', event => showFolderActions(folder, 'add', event.currentTarget));
+    const options = iconButton('Opções da pasta', 'M12 5v.01M12 12v.01M12 19v.01', event => showFolderActions(folder, 'options', event.currentTarget));
+    entry.append(open, add, options);
+    branch.append(entry);
+    if (expanded) branch.append(renderPlaylistBranch(folder.id, folders));
+  }
+  const entries = playlistItems(folderId);
+  const content = entries.map((item, index) => {
+    const entry = document.createElement('div'); entry.className = `media-entry ${playlistMode}`;
+    const isAudio = item.type === 'audio';
+    const open = isAudio ? document.createElement('span') : button(item.name, () => openMedia(item), 'media-open');
+    if (isAudio) open.textContent = item.name;
+    const title = document.createElement('div');
+    title.className = 'media-title';
+    if (isAudio) {
+      const play = iconButton('Reproduzir', 'm9 5 12 7-12 7z', () => {
+        if (activeAudioId === item.id && !libraryAudio.paused) libraryAudio.pause();
+        else playLibraryAudio(item);
+      });
+      play.dataset.audioPlay = item.id;
+      const stop = iconButton('Parar', 'M6 6h12v12H6z', stopLibraryAudio);
+      stop.classList.add('audio-stop');
+      stop.dataset.audioStop = item.id;
+      title.append(play, stop);
+    }
+    title.append(open);
+    if (playlistMode === 'gallery' && item.type === 'image') {
+      const preview = document.createElement('img');
+      preview.className = 'media-preview'; preview.src = mediaUrl(item); preview.alt = '';
+      open.prepend(preview);
+    }
+    const detail = document.createElement('small'); detail.textContent = `${item.type === 'audio' ? 'Áudio' : item.type === 'video' ? 'Vídeo' : 'Imagem'} · ${Math.max(1, Math.ceil(item.size / 1024))} KB`;
+    const controls = document.createElement('div'); controls.className = 'actions';
+    const up = iconButton('Subir', 'm5 12 7-7 7 7M12 19V5', () => updatePlaylist(() => window.player.movePlaylist(course.id, item.id, folderId, 'up')));
+    const down = iconButton('Descer', 'M12 5v14m-7-7 7 7 7-7', () => updatePlaylist(() => window.player.movePlaylist(course.id, item.id, folderId, 'down')));
+    up.disabled = index === 0; down.disabled = index === entries.length - 1;
+    controls.append(up, down);
+    if (item.type !== 'image') {
+      const wrapper = document.createElement('div');
+      wrapper.className = 'speed-control';
+      const speed = button(`${String(playbackSpeed).replace('.', ',')}×`, event => toggleSpeedMenu(event.currentTarget), 'speed-button library-speed');
+      speed.setAttribute('aria-label', `Velocidade de ${item.name}`);
+      speed.setAttribute('aria-expanded', 'false');
+      speed.setAttribute('aria-controls', 'speed-menu');
+      wrapper.append(speed);
+      controls.append(wrapper);
+    }
+    controls.append(iconButton('Opções do arquivo', 'M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8ZM9 3l-1 3-3 1-2 3 2 2-1 3 2 3 3-1 2 4h3l1-3 3-1 3-2-2-3 1-3-2-3-3 1-2-4Z', event => showFileActions(item, folders, event.currentTarget)));
+    entry.append(title, detail, controls);
+    return entry;
+  });
+  if (!branch.childElementCount && !entries.length) {
+    const empty = document.createElement('p'); empty.textContent = folderId === 'root' ? 'Adicione arquivos ou crie uma pasta.' : 'Pasta vazia.'; branch.append(empty);
+  }
+  if (content.length) {
+    const list = document.createElement('div');
+    list.className = `media-list ${playlistMode}`;
+    list.append(...content); branch.append(list);
+  }
+  return branch;
+}
+
+async function loadPlaylist(owner = course) {
+  if (!owner) return;
+  const data = await window.player.loadPlaylist(owner.id);
+  if (course !== owner) return;
+  playlistData = data;
+  renderPlaylist();
+}
+
+async function updatePlaylist(action) {
+  const owner = course;
+  $('playlist-status').textContent = 'Salvando playlist…';
+  try {
+    const data = await action();
+    if (course === owner) { playlistData = data; $('playlist-status').textContent = ''; renderPlaylist(); }
+  } catch (error) {
+    if (course === owner) $('playlist-status').textContent = error.message.replace(/^Error invoking remote method '[^']+': (Error: )?/, '');
+  }
+}
+
+function closeMedia() {
+  $('media-viewer').close();
+}
+
+function openMedia(item) {
+  stopLibraryAudio();
+  video.pause();
+  $('media-title').textContent = item.name;
+  for (const id of ['media-image', 'media-video']) $(id).hidden = true;
+  const target = $(item.type === 'image' ? 'media-image' : 'media-video');
+  target.src = mediaUrl(item); target.hidden = false;
+  target.playbackRate = playbackSpeed;
+  if (!$('media-viewer').open) $('media-viewer').showModal();
+  if (item.type !== 'image') target.play().catch(() => {});
+}
+
 function saveProgress(done) {
   if (!lesson || (restoring && done === undefined)) return Promise.resolve();
   const hasVideo = !restoring && video.readyState >= 1 && !video.error;
@@ -213,6 +365,8 @@ function saveProgress(done) {
 
 function stop() {
   const saved = saveProgress();
+  stopLibraryAudio();
+  if ($('media-viewer').open) closeMedia();
   lesson = undefined;
   video.pause();
   video.removeAttribute('src');
@@ -227,14 +381,225 @@ function selectCourse(item) {
   if (item === course && view === 'course') return;
   stop();
   course = item;
+  playlistData = undefined;
+  expandedFolders.clear();
+  hidePlaylistPopup();
   view = 'course';
   $('search').value = '';
   render();
+  $('playlist-media').replaceChildren();
+  loadPlaylist(item).catch(error => { if (course === item) $('playlist-status').textContent = error.message; });
   const resume = item && window.playbackUtils.findResume([item])?.item;
   if (resume) selectLesson(resume, false);
 }
 $('home').onclick = () => { stop(); view = 'dashboard'; render(); };
+$('window-minimize').onclick = () => run(() => window.player.minimizeWindow());
+$('window-maximize').onclick = () => run(() => window.player.maximizeWindow());
+$('window-close').onclick = () => run(async () => {
+  await stop();
+  await window.player.closeWindow();
+});
 $('open-notes').onclick = () => window.notebook.open(course);
+$('playlist-list').onclick = () => { playlistMode = 'list'; renderPlaylist(); };
+$('playlist-gallery').onclick = () => { playlistMode = 'gallery'; renderPlaylist(); };
+$('playlist-add').onclick = event => { popupAnchor = event.currentTarget; showFilesPopup(); };
+$('playlist-new-folder').onclick = event => { popupAnchor = event.currentTarget; showFolderEditor('root'); };
+function folderLabel(folder) {
+  const folders = playlistData?.folders || [];
+  const labels = [];
+  for (let current = folder; current; current = folders.find(entry => entry.id === current.parent)) {
+    if (current.id !== 'root') labels.unshift(current.name);
+  }
+  return labels.join(' / ') || 'Soltos na Biblioteca';
+}
+function hidePlaylistPopup() {
+  $('playlist-popup').hidden = true;
+  playlistPopupFolder = undefined; playlistFolderEditing = undefined;
+}
+function positionPlaylistPopup() {
+  const popup = $('playlist-popup');
+  if (popup.hidden) return;
+  if (!popupAnchor?.isConnected) { hidePlaylistPopup(); return; }
+  const rect = popupAnchor.getBoundingClientRect();
+  const gap = 6, margin = 8;
+  const below = innerHeight - rect.bottom - gap - margin;
+  const above = rect.top - gap - margin;
+  if (rect.bottom < 0 || rect.top > innerHeight) { hidePlaylistPopup(); return; }
+  popup.style.maxHeight = '';
+  const openAbove = popup.offsetHeight > below && above > below;
+  popup.style.maxHeight = `${Math.max(0, openAbove ? above : below)}px`;
+  popup.style.top = `${openAbove ? rect.top - gap - popup.offsetHeight : rect.bottom + gap}px`;
+  const rightLimit = innerWidth - popup.offsetWidth - margin;
+  popup.style.left = `${Math.max(margin, rect.right <= rightLimit ? rect.right : Math.min(rect.right - popup.offsetWidth, rightLimit))}px`;
+}
+window.addEventListener('resize', positionPlaylistPopup);
+window.addEventListener('scroll', positionPlaylistPopup, true);
+document.addEventListener('pointerdown', event => {
+  if (!$('playlist-popup').contains(event.target) && !popupAnchor?.contains(event.target)) hidePlaylistPopup();
+});
+document.addEventListener('keydown', event => {
+  if (event.key === 'Escape' && !$('playlist-popup').hidden) {
+    hidePlaylistPopup(); popupAnchor?.focus({ preventScroll: true });
+  }
+});
+function showFolderEditor(folderId, editing) {
+  $('playlist-file-actions').hidden = true;
+  if (!playlistData) return;
+  const folder = playlistData.folders.find(entry => entry.id === (editing || folderId));
+  playlistPopupFolder = folderId; playlistFolderEditing = editing;
+  $('playlist-popup').hidden = false;
+  $('playlist-folder-form').hidden = false; $('playlist-files-form').hidden = true; $('playlist-folder-actions').hidden = true;
+  $('playlist-folder-title').textContent = editing ? 'Editar pasta' : folderId === 'root' ? 'Nova pasta' : 'Nova subpasta';
+  $('playlist-folder-create').textContent = editing ? 'Salvar alterações' : 'Criar pasta';
+  $('playlist-folder-name').value = editing ? folder.name : '';
+  $('playlist-folder-color').value = editing ? folder.color || '#d6b55b' : '#d6b55b';
+  $('playlist-folder-status').textContent = '';
+  positionPlaylistPopup();
+  $('playlist-folder-name').focus({ preventScroll: true });
+}
+function showFilesPopup() {
+  $('playlist-file-actions').hidden = true;
+  if (!playlistData) return;
+  const select = $('playlist-files-folder');
+  select.replaceChildren(...playlistData.folders.map(folder => new Option(folderLabel(folder), folder.id)));
+  select.value = 'root';
+  $('playlist-popup').hidden = false;
+  $('playlist-folder-form').hidden = true; $('playlist-files-form').hidden = false; $('playlist-folder-actions').hidden = true;
+  positionPlaylistPopup();
+  select.focus({ preventScroll: true });
+}
+function showFolderActions(folder, kind, anchor) {
+  $('playlist-file-actions').hidden = true;
+  popupAnchor = anchor;
+  playlistPopupFolder = folder.id;
+  const actions = $('playlist-folder-actions');
+  $('playlist-popup').hidden = false;
+  $('playlist-folder-form').hidden = true; $('playlist-files-form').hidden = true; actions.hidden = false;
+  $('playlist-folder-subfolder').hidden = kind !== 'add';
+  $('playlist-folder-add').hidden = kind !== 'add';
+  $('playlist-folder-edit').hidden = kind !== 'options';
+  $('playlist-folder-delete').hidden = kind !== 'options';
+  positionPlaylistPopup();
+  actions.querySelector('button:not([hidden])').focus({ preventScroll: true });
+}
+function showFileActions(item, folders, anchor) {
+  popupAnchor = anchor;
+  for (const id of ['playlist-folder-form', 'playlist-files-form', 'playlist-folder-actions']) $(id).hidden = true;
+  $('playlist-file-actions').hidden = false;
+  $('playlist-popup').hidden = false;
+  const move = $('playlist-file-move');
+  move.replaceChildren(new Option('Escolher pasta…', ''), ...folders.filter(folder => folder.id !== item.folderId).map(folder => new Option(folderLabel(folder), folder.id)));
+  move.onchange = () => {
+    if (!move.value) return;
+    hidePlaylistPopup();
+    updatePlaylist(() => window.player.movePlaylist(course.id, item.id, move.value, 'folder'));
+  };
+  $('playlist-file-delete').onclick = () => confirmLibraryDelete('item', item);
+  positionPlaylistPopup();
+  move.focus({ preventScroll: true });
+}
+document.querySelectorAll('[data-folder-color]').forEach(control => {
+  control.onclick = () => { $('playlist-folder-color').value = control.dataset.folderColor; };
+});
+document.querySelectorAll('.playlist-popup-cancel').forEach(control => { control.onclick = hidePlaylistPopup; });
+$('playlist-popup-cancel').onclick = hidePlaylistPopup;
+$('playlist-folder-form').onsubmit = async event => {
+  event.preventDefault();
+  const name = $('playlist-folder-name').value;
+  const submit = $('playlist-folder-create');
+  submit.disabled = true;
+  $('playlist-folder-status').textContent = '';
+  try {
+    const owner = course, color = $('playlist-folder-color').value;
+    const parent = playlistPopupFolder;
+    const data = playlistFolderEditing
+      ? await window.player.updatePlaylistFolder(owner.id, playlistFolderEditing, name, color)
+      : await window.player.createPlaylistFolder(owner.id, playlistPopupFolder, name, color);
+    if (course === owner) { playlistData = data; expandLibraryPath(parent); hidePlaylistPopup(); renderPlaylist(); }
+  } catch (error) {
+    $('playlist-folder-status').textContent = error.message.replace(/^Error invoking remote method '[^']+': (Error: )?/, '');
+    positionPlaylistPopup();
+  } finally { submit.disabled = false; }
+};
+$('playlist-files-form').onsubmit = event => {
+  event.preventDefault();
+  const folderId = $('playlist-files-folder').value;
+  importLibraryFiles(folderId);
+};
+function expandLibraryPath(folderId) {
+  for (let folder = playlistData.folders.find(entry => entry.id === folderId); folder?.parent; folder = playlistData.folders.find(entry => entry.id === folder.parent)) expandedFolders.add(folder.id);
+}
+function importLibraryFiles(folderId) {
+  hidePlaylistPopup();
+  const owner = course;
+  updatePlaylist(async () => {
+    const data = await window.player.importPlaylist(owner.id, folderId);
+    if (course === owner) expandLibraryPath(folderId);
+    return data;
+  });
+}
+$('playlist-folder-subfolder').onclick = () => showFolderEditor(playlistPopupFolder);
+$('playlist-folder-add').onclick = () => importLibraryFiles(playlistPopupFolder);
+$('playlist-folder-edit').onclick = () => showFolderEditor(playlistPopupFolder, playlistPopupFolder);
+$('playlist-folder-delete').onclick = () => confirmLibraryDelete('folder', playlistData.folders.find(entry => entry.id === playlistPopupFolder));
+function confirmLibraryDelete(kind, entry) {
+  hidePlaylistPopup();
+  const owner = course;
+  const dialog = $('library-delete');
+  $('library-delete-message').textContent = kind === 'folder' ? `Excluir “${entry.name}” e todo o seu conteúdo?` : `Excluir “${entry.name}” da Biblioteca?`;
+  dialog.returnValue = '';
+  dialog.onclose = () => {
+    if (dialog.returnValue === 'delete' && course === owner) updatePlaylist(() => window.player.deletePlaylist(owner.id, kind, entry.id));
+  };
+  dialog.showModal();
+};
+$('media-close').onclick = closeMedia;
+$('media-viewer').onclose = () => {
+  const mediaVideo = $('media-video');
+  mediaVideo.pause();
+  mediaVideo.removeAttribute('src');
+  mediaVideo.load();
+  $('media-image').removeAttribute('src');
+};
+function syncAudioControls() {
+  for (const control of document.querySelectorAll('[data-audio-play]')) {
+    const playing = control.dataset.audioPlay === activeAudioId && !libraryAudio.paused;
+    const label = playing ? 'Pausar' : 'Reproduzir';
+    control.setAttribute('aria-label', label);
+    control.title = label;
+    control.querySelector('path').setAttribute('d', playing ? 'M9 5v14M15 5v14' : 'm9 5 12 7-12 7z');
+  }
+  for (const control of document.querySelectorAll('[data-audio-stop]')) control.disabled = control.dataset.audioStop !== activeAudioId;
+}
+function stopLibraryAudio() {
+  if (!activeAudioId) return;
+  activeAudioId = undefined;
+  libraryAudio.pause();
+  libraryAudio.removeAttribute('src');
+  libraryAudio.load();
+  syncAudioControls();
+}
+function playLibraryAudio(item) {
+  video.pause();
+  if (activeAudioId !== item.id) {
+    activeAudioId = item.id;
+    libraryAudio.src = mediaUrl(item);
+  }
+  libraryAudio.playbackRate = playbackSpeed;
+  libraryAudio.play().catch(error => {
+    if (error.name !== 'AbortError' && activeAudioId === item.id) {
+      stopLibraryAudio();
+      $('playlist-status').textContent = 'Não foi possível reproduzir este áudio.';
+    }
+  });
+}
+libraryAudio.onplay = libraryAudio.onpause = syncAudioControls;
+libraryAudio.onended = () => {
+  const item = playlistData?.items.find(entry => entry.id === activeAudioId);
+  const next = item && playlistItems(item.folderId).slice(playlistItems(item.folderId).indexOf(item) + 1).find(entry => entry.type === 'audio');
+  if (next) playLibraryAudio(next);
+  else stopLibraryAudio();
+};
 window.addEventListener('notebook-error', event => notice(event.detail));
 function closeCourseMenu() { $('course-menu-items').hidden = true; $('course-menu-toggle').setAttribute('aria-expanded', 'false'); }
 $('course-menu-toggle').onclick = () => {
@@ -278,7 +643,7 @@ video.addEventListener('timeupdate', () => {
   updatePlayer();
   if (Date.now() - lastSaved >= 5000) saveProgress();
 });
-video.addEventListener('play', updatePlayer);
+video.addEventListener('play', () => { stopLibraryAudio(); updatePlayer(); });
 video.addEventListener('pause', () => { updatePlayer(); saveProgress(); });
 video.addEventListener('seeked', () => saveProgress());
 video.addEventListener('ended', async () => {
@@ -333,6 +698,10 @@ function displaySpeed(speed) {
   playbackSpeed = speed;
   video.defaultPlaybackRate = speed;
   video.playbackRate = speed;
+  libraryAudio.defaultPlaybackRate = speed;
+  libraryAudio.playbackRate = speed;
+  $('media-video').playbackRate = speed;
+  for (const button of document.querySelectorAll('.library-speed')) button.textContent = `${String(speed).replace('.', ',')}×`;
   $('speed-toggle').textContent = `${String(speed).replace('.', ',')}×`;
   $('speed-number').value = String(speed);
   $('speed-range').value = String(speed);
@@ -351,11 +720,19 @@ async function setSpeed(value, save = true) {
     catch { $('speed-status').textContent = 'Não foi possível salvar a velocidade. Tente novamente.'; }
   }
 }
-function showSpeedMenu(open) {
-  $('speed-menu').hidden = !open;
-  $('speed-toggle').setAttribute('aria-expanded', String(open));
+let speedAnchor;
+function showSpeedMenu(open, anchor = $('speed-toggle')) {
+  const menu = $('speed-menu');
+  speedAnchor?.setAttribute('aria-expanded', 'false');
+  speedAnchor = open ? anchor : undefined;
+  (open ? anchor : $('speed-toggle')).parentElement.append(menu);
+  menu.hidden = !open;
+  if (open) anchor.setAttribute('aria-expanded', 'true');
 }
-$('speed-toggle').onclick = () => showSpeedMenu($('speed-menu').hidden);
+function toggleSpeedMenu(anchor) {
+  showSpeedMenu(speedAnchor !== anchor, anchor);
+}
+$('speed-toggle').onclick = event => toggleSpeedMenu(event.currentTarget);
 $('speed-range').oninput = event => setSpeed(event.target.value, false);
 $('speed-range').onchange = event => setSpeed(event.target.value);
 $('speed-number').onchange = event => setSpeed(event.target.value);
@@ -363,7 +740,12 @@ $('speed-minus').onclick = () => setSpeed(Math.max(0.25, Math.round((playbackSpe
 $('speed-plus').onclick = () => setSpeed(Math.min(2, Math.round((playbackSpeed + 0.05) * 100) / 100));
 document.querySelectorAll('[data-speed]').forEach(button => { button.onclick = () => setSpeed(button.dataset.speed); });
 document.addEventListener('click', event => { if (!event.target.closest('.speed-control')) showSpeedMenu(false); });
-document.addEventListener('keydown', event => { if (event.key === 'Escape' && !$('speed-menu').hidden) { showSpeedMenu(false); $('speed-toggle').focus(); } });
+document.addEventListener('keydown', event => {
+  if (event.key !== 'Escape' || !speedAnchor) return;
+  const anchor = speedAnchor;
+  showSpeedMenu(false);
+  anchor.focus();
+});
 $('fullscreen').onclick = async () => {
   try {
     if (document.fullscreenElement) await document.exitFullscreen();
@@ -414,6 +796,7 @@ async function initialize() {
   const recent = window.playbackUtils.findResume(library.courses);
   if (recent) course = recent.course;
   render();
+  if (course) loadPlaylist(course).catch(error => { if (course) $('playlist-status').textContent = error.message; });
   if (recent) selectLesson(recent.item, false);
   if (library.startupError) notice(library.startupError);
 }

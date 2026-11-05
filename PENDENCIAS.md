@@ -17,4 +17,6 @@
 - [ ] Validar em cursos reais que a prévia 0.1.2-preview.2 prepara a aula de Continuar também ao trocar de curso e ao retornar da Tela inicial.
 - [ ] Validar anotações em cursos reais, incluindo falha de gravação e reimportação. O caderno usa editor próprio inspirado no Organon; a inserção de várias imagens de uma vez e a manipulação avançada de imagens ainda não têm paridade completa.
 - [ ] Confirmar preservação do perfil efetivamente usado pelo aplicativo instalado durante uma atualização: os testes anteriores de instalador conferiram arquivos artificiais, mas a variável APPDATA sozinha não garantiu o isolamento do perfil Electron.
+- [ ] Validar em instalação real a limpeza do cache de atualizações após a abertura da nova versão, incluindo arquivo bloqueado e nova tentativa na abertura seguinte.
+- [ ] Validar a playlist em mídia real, incluindo importação de áudios, vídeos e imagens, reprodução sequencial, modal de vídeo, pastas e subpastas, reordenação, exclusão e preservação após reimportar o curso.
 - [x] Confirmar acesso de escrita ao origin e publicar a primeira versão estável com instalador e SHA-256 após autorização do usuário.

@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' data:; media-src lesson:; object-src 'none'; base-uri 'none'; form-action 'none'">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' data: media:; media-src lesson: media:; object-src 'none'; base-uri 'none'; form-action 'none'">
   <title>Player de Aulas</title>
   <link rel="stylesheet" href="style.css">
   <script src="theme.js" defer></script>
@@ -24,7 +24,16 @@
     </footer>
   </aside>
   <div class="workspace">
-    <header class="topbar"><span>Biblioteca</span><div class="topbar-actions"><button id="toggle-theme" class="quiet"></button><span id="connection"><span class="connection-dot" aria-hidden="true"></span><span id="connection-label">Dados locais</span></span></div></header>
+    <header class="topbar">
+      <div class="topbar-actions">
+        <button id="toggle-theme" class="quiet"></button>
+        <span id="connection"><span class="connection-dot" aria-hidden="true"></span><span id="connection-label">Dados locais</span></span>
+        <span class="window-separator" aria-hidden="true"></span>
+        <button type="button" class="quiet window-control" id="window-minimize" title="Minimizar janela" aria-label="Minimizar janela"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14"/></svg></button>
+        <button type="button" class="quiet window-control" id="window-maximize" title="Maximizar ou restaurar janela" aria-label="Maximizar ou restaurar janela"><svg class="ui-icon" viewBox="0 0 14 14" aria-hidden="true"><rect x="2.5" y="2.5" width="9" height="9" stroke-width="1"/></svg></button>
+        <button type="button" class="quiet window-control" id="window-close" title="Fechar aplicativo" aria-label="Fechar aplicativo"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m18 6-12 12M6 6l12 12"/></svg></button>
+      </div>
+    </header>
     <main>
       <p id="notice" role="status" hidden></p>
       <section id="login" class="card onboarding" hidden>
@@ -109,6 +118,11 @@
           <p id="materials-status" role="status"></p>
           <div id="documents"></div>
         </section>
+        <section id="course-playlist" class="card materials">
+          <div class="materials-head"><h2>Biblioteca</h2><div class="actions"><button id="playlist-list" class="quiet" type="button" aria-pressed="true">Lista</button><button id="playlist-gallery" class="quiet" type="button" aria-pressed="false">Galeria</button><button id="playlist-new-folder" class="secondary" type="button">Nova pasta</button><button id="playlist-add" class="primary" type="button">Adicionar arquivos</button></div></div>
+          <p id="playlist-status" role="status"></p>
+          <div id="playlist-media"></div>
+        </section>
       </section>
     </main>
   </div>
@@ -121,8 +135,34 @@
     </form>
   </dialog>
   <dialog id="confirm-remove">
-    <form method="dialog"><h2>Remover curso?</h2><p>O catálogo e o progresso deste curso serão apagados deste PC. As anotações serão preservadas se você importar o curso novamente.</p>
+    <form method="dialog"><h2>Remover curso?</h2><p>O catálogo e o progresso deste curso serão apagados deste PC. As anotações e a playlist serão preservadas se você importar o curso novamente.</p>
       <div class="actions"><button value="cancel" class="secondary" autofocus>Cancelar</button><button value="remove" class="danger">Remover curso</button></div>
+    </form>
+  </dialog>
+  <div id="playlist-popup" class="playlist-popup" hidden>
+    <form id="playlist-folder-form" hidden>
+      <h2 id="playlist-folder-title">Nova pasta</h2>
+      <label>Nome da pasta<input id="playlist-folder-name" maxlength="160" required></label>
+      <label>Cor da pasta<input id="playlist-folder-color" type="color" value="#d6b55b"></label>
+      <div class="playlist-colors" aria-label="Cores sugeridas"><button type="button" data-folder-color="#d6b55b" style="--folder-color:#d6b55b" aria-label="Amarelo"></button><button type="button" data-folder-color="#9fb3c8" style="--folder-color:#9fb3c8" aria-label="Azul"></button><button type="button" data-folder-color="#a4bca7" style="--folder-color:#a4bca7" aria-label="Verde"></button><button type="button" data-folder-color="#c6afbf" style="--folder-color:#c6afbf" aria-label="Lilás"></button><button type="button" data-folder-color="#b5b5b5" style="--folder-color:#b5b5b5" aria-label="Cinza"></button></div>
+      <p id="playlist-folder-status" role="status"></p>
+      <div class="actions"><button type="button" id="playlist-popup-cancel" class="secondary">Cancelar</button><button id="playlist-folder-create" class="primary">Criar pasta</button></div>
+    </form>
+    <form id="playlist-files-form" hidden>
+      <h2>Adicionar arquivos</h2>
+      <label>Pasta de destino<select id="playlist-files-folder"></select></label>
+      <p>Escolha se os arquivos ficam soltos na Biblioteca ou em uma pasta.</p>
+      <div class="actions"><button type="button" class="playlist-popup-cancel secondary">Cancelar</button><button class="primary">Selecionar arquivos</button></div>
+    </form>
+    <div id="playlist-folder-actions" hidden><button id="playlist-folder-subfolder" type="button" hidden>Nova subpasta</button><button id="playlist-folder-add" type="button" hidden>Adicionar arquivos</button><button id="playlist-folder-edit" type="button" hidden>Editar pasta</button><button id="playlist-folder-delete" type="button" class="danger" hidden>Excluir pasta</button></div>
+    <div id="playlist-file-actions" hidden>
+      <label>Mover para <select id="playlist-file-move"></select></label>
+      <button id="playlist-file-delete" type="button" class="danger icon-label"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18M19 6v14H5V6m3 0V3h8v3m-6 4v6m4-6v6"/></svg>Excluir</button>
+    </div>
+  </div>
+  <dialog id="library-delete" aria-labelledby="library-delete-message">
+    <form method="dialog"><h2 id="library-delete-message"></h2>
+      <div class="actions"><button value="cancel" class="secondary" autofocus>Cancelar</button><button value="delete" class="danger">Excluir</button></div>
     </form>
   </dialog>
   <dialog id="notebook" aria-labelledby="notebook-title" class="notebook-modal">
@@ -138,6 +178,8 @@
       </section></div>
   </dialog>
   <dialog id="note-delete-dialog"><h2>Excluir anotação?</h2><p>O texto e as imagens desta nota serão removidos.</p><div class="actions"><button type="button" id="note-delete-cancel" class="secondary">Cancelar</button><button type="button" id="note-delete-confirm" class="danger">Excluir anotação</button></div></dialog>
+  <audio id="media-audio" preload="none" hidden></audio>
+  <dialog id="media-viewer" class="media-viewer"><div class="media-viewer-head"><h2 id="media-title"></h2><button id="media-close" type="button" class="quiet">Fechar</button></div><img id="media-image" hidden alt=""><video id="media-video" controls preload="metadata" hidden></video></dialog>
   <dialog id="sketch-dialog"><h2>Rabiscar</h2><p>Desenhe com o mouse ou toque.</p><div class="sketch-tools"><label>Cor <input type="color" id="sketch-color" value="#222222"></label><label>Espessura <input type="range" id="sketch-width" min="1" max="20" value="3"></label></div><canvas id="sketch-canvas" width="800" height="420" aria-label="Área de desenho"></canvas><div class="actions"><button type="button" id="sketch-clear" class="secondary">Limpar</button><button type="button" id="sketch-cancel" class="secondary">Cancelar</button><button type="button" id="sketch-save" class="primary">Adicionar à nota</button></div></dialog>
   <dialog id="appearance" aria-labelledby="appearance-title">
     <form method="dialog">

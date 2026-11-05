@@ -1,9 +1,43 @@
 # Repasse entre planejamento e execução
 
-**Lote atual:** navegação entre aulas no player
-**Estado:** Versão estável 0.1.3 publicada
+**Lote atual:** limpeza do cache de atualizações e playlist por curso
+**Estado:** Prévia aprovada para publicação estável
+**Base:** 0.1.3 estável. Prévia atual 0.1.4-preview.7.
 
-## Resultado parcial da execução
+## Limpeza após atualização
+
+- O app já chama `cleanupInstalled()` em `updates.cjs` na abertura da versão empacotada. A limpeza usa a versão em execução e ocorre no cache `updates` do perfil. O evento de criação do processo NSIS só indica que ele iniciou. Use a abertura da versão instalada como confirmação e mantenha nova tentativa na próxima abertura para arquivos temporariamente bloqueados.
+- Valide o fluxo atual antes de alterar o NSIS. Corrija somente as lacunas demonstradas. Remova instaladores, parciais e checksums conhecidos das versões estáveis já alcançadas, preservando atualizações futuras ou pendentes, arquivos desconhecidos e links/junções. Remova diretórios somente se estiverem vazios. Use a política de versões do projeto e cubra a prévia com o mesmo número-base de uma estável que ainda pode ser oferecida.
+- Em instalação e perfil isolados, use uma fonte de atualização de teste e confira o caminho efetivo do perfil. Exercite download, instalação silenciosa, reinício, limpeza, falha com nova tentativa e preservação do perfil. Inclua teste focado do cache com versões antiga, atual e futura, arquivos desconhecidos e arquivo bloqueado. Registre em `PENDENCIAS.md` qualquer etapa que permanecer sem validação.
+
+## Playlist por curso
+
+- Adicione **Playlist** abaixo de **Materiais para baixar**, inclusive em cursos sem documentos. Inclua alternância **Lista/Galeria**, seletor de arquivos locais em lote, pastas e subpastas com navegação por caminho, ações para renomear, mover e excluir, e ordem manual persistente por pasta em ambas as exibições. Inclua comandos de reordenação operáveis por teclado. Siga os temas, rótulos em português e ícones Lucide do Organon.
+- Use um índice JSON separado por conta e curso e copie os arquivos para armazenamento gerenciado pelo app no perfil local, com identificadores internos. Valide os formatos aceitos no processo principal, grave o índice atomicamente e trate cópias parciais, falhas de gravação/exclusão e nova tentativa. Atualizar o curso ou desconectar preserva a playlist. Ao remover o curso, preserve a playlist para reimportação, como no caderno, e informe isso na confirmação. A exclusão de uma pasta na playlist deve confirmar a remoção do conteúdo e liberar as cópias locais.
+- Exponha arquivos pelo protocolo interno com autorização por conta/curso, intervalos de bytes para áudio/vídeo e permissões de conteúdo restritas. Reuse os controles e configurações aplicáveis do player de aulas na modal de vídeo, incluindo velocidade, volume, tela cheia e setas de cinco segundos. Mostre imagens em visualizador e ofereça reprodução de áudio com pausa, busca e navegação. Ao terminar um áudio, avance para o próximo áudio na ordem manual da pasta e pare no último. Pause o player de aulas ao abrir mídia e encerre a reprodução da playlist ao fechar o visualizador ou trocar de curso. Mantenha o progresso das aulas separado.
+- Na demonstração isolada, importe seis áudios, vídeo e imagem. Reordene e reproduza os áudios, alterne lista e galeria, crie subpastas, mova e exclua itens. Reinicie e confira a ordem e as cópias depois de mover os arquivos originais. Exercite formato incompatível, erro de importação, nova tentativa, atualização e remoção/reimportação do curso, além da reprodução e do salto no vídeo.
+
+## Entrega
+
+- Rode `npm.cmd run check`, gere a prévia com `npm.cmd run dist` e confira o pacote, a integridade e o SHA-256 do instalador. Após validação, use o script de retenção para manter a nova prévia e a versão anterior com instalador. Entregue o caminho e os resultados ao usuário. A promoção, o commit, o push e a publicação estável dependem do aval explícito para este lote.
+
+## Resultado da execução
+
+- A prévia 0.1.4-preview.7 aplica as cores do tema ao cabeçalho, alinha os pop-ups da Biblioteca à direita do botão quando há espaço e compacta os menus de opções e os formulários de edição e exclusão. A Biblioteca compartilha o seletor de velocidade das aulas e mostra um quadrado preenchido no botão de parar.
+
+- A prévia 0.1.4-preview.6 fixa o cabeçalho durante a rolagem, usa fundo escuro também no tema claro e adota os controles de janela do Organon. O rótulo do cabeçalho foi removido. O teste Electron conferiu rolagem, cor no tema claro, minimizar, maximizar, restaurar e fechar. Os 13 testes locais passaram.
+
+- A prévia 0.1.4-preview.5 reproduz áudio na linha do arquivo com reprodução, pausa, parada e velocidade compartilhada com o player. A engrenagem reúne movimentação e exclusão. Vídeos e imagens abrem no visualizador. O teste Electron em perfil isolado confirmou reprodução de WAV, pausa, velocidade de 1,5×, parada e exclusão pelo menu. Os 13 testes locais passaram.
+
+- A prévia 0.1.4-preview.4 apresenta a Biblioteca como árvore expansível. Menus abrem junto aos botões, amostras de cor usam CSS compatível com a política de conteúdo, e importações expandem a pasta de destino. Em demonstração Electron com perfil isolado e seletor de arquivos simulado, foram conferidos criação, amostra verde, ancoragem, subpasta, importação direta, expansão, edição, exclusão de arquivo e seleção de destino pelo botão geral.
+
+- A limpeza de atualizações foi conferida em teste automatizado. Na abertura da versão nova, o cache remove instalador, parcial e checksum de versões alcançadas, mantém versões futuras e arquivos desconhecidos, e preserva pastas que ainda tenham conteúdo. Falhas por bloqueio continuam elegíveis para nova tentativa na abertura seguinte.
+- A playlist foi implementada em índice e armazenamento locais separados por conta e curso. Ela suporta importação de áudios, vídeos e imagens, pastas e subpastas, lista, galeria, movimentação, exclusão e reordenação. Vídeos, áudios e imagens abrem no visualizador interno. A playlist é preservada ao remover e reimportar um curso.
+- A prévia `0.1.4-preview.1` rejeitou o identificador numérico de cursos importados em versões anteriores. A correção normaliza o identificador antes de acessar a playlist. `npm.cmd run check` passou com 13 testes, os arquivos empacotados foram conferidos e a prévia `0.1.4-preview.2` tem SHA-256 `916A9765FC7A6EF5A74EE00334D55099610814BDC3403EBF0B939862DB86207F`. A retenção local manteve `0.1.4-preview.2` e `0.1.4-preview.1`.
+- A prévia `0.1.4-preview.2` usava `prompt()` para criar pastas, e o diálogo não é exibido de forma confiável na janela Electron. Ela foi substituída por modal nativa. Gere e valide `0.1.4-preview.3` antes de entregá-la.
+- A prévia `0.1.4-preview.3` substituiu a modal por pop-up contextual com nome, cor amarela padrão, paleta neutra, criação de subpastas, edição e exclusão. O seletor de arquivos agora pede a pasta de destino. `npm.cmd run check` passou com 13 testes, o pacote foi conferido e o instalador tem SHA-256 `A529E7C01E6C8A4D826496B4FA83205C935056EDA315B56ACBFBEDCE49DA350E`. A retenção local manteve `0.1.4-preview.3` e `0.1.4-preview.2`.
+
+## Histórico de execução
 
 - Release `v0.1.3` publicada a partir do commit `8b1b8fe`. O canal real ofereceu a versão para instalações `0.1.2`, e os hashes do instalador e checksum publicados coincidiram. Retenção local manteve `0.1.3` e `0.1.3-preview.3`.
 - Versão estável `0.1.3` gerada após aprovação do usuário. Os 12 testes locais passaram; executável empacotado conferido em perfis isolados para ícones, barra lateral, navegação e setas; integridade do instalador conferida. Retenção local manteve `0.1.3` e `0.1.3-preview.3`.
@@ -36,13 +70,13 @@
 - `origin` acessível para leitura e sem referências remotas; repositório local ainda sem commits. Acesso de escrita não foi testado. Nenhuma publicação foi feita.
 - Falta inspecionar link e seletores nas paletas, instalar em perfil de teste, validar atualização completa e preservar perfil/sessão, além do teste em canal real. Após validação e aval explícito, preparar publicação estável, confirmar acesso de escrita, commit/push e Release.
 
-## Contexto
+## Contexto e planejamento anteriores
 
 Player de Aulas é um aplicativo Electron para Windows. Importa vídeos de canais acessíveis à conta, organiza aulas, reproduz por trechos e guarda o ponto de retomada. O Organon é a referência visual. Catálogo, progresso e aparência ficam em JSON local. A sessão fica protegida pelo sistema operacional. Veja `AGENTS.md`, `README.md` e `PENDENCIAS.md`.
 
 Já passaram a demonstração de reprodução e retomada, a troca e persistência de paleta e a simulação de leitura por intervalo de bytes. Login, importação e reprodução no Telegram real seguem pendentes.
 
-## Objetivo e critérios de aceite
+### Objetivo e critérios de aceite anteriores
 
 - Na tela de credenciais, adicionar o link **Obter API ID e API Hash** para [API development tools](https://my.telegram.org/apps). Abrir no navegador padrão e indicar que o usuário deve entrar com a conta Telegram.
 - No login, oferecer um seletor de país que preencha o código internacional, com Brasil (+55) como padrão inicial e opção de trocar. Aceitar número local, número completo com `+` e número internacional sem `+` quando corresponder ao país selecionado e tiver formato válido. Aceitar espaços, parênteses e hífens usuais. Evitar duplicar o código do país e pedir correção em português se a entrada for inválida ou ambígua.
@@ -51,7 +85,7 @@ Já passaram a demonstração de reprodução e retomada, a troca e persistênci
 - Replicar a experiência do Organon no instalador NSIS e no atualizador do app. Usar como referência `../estudo-desktop/build/installer.nsh`, `electron/updates.cjs`, `package.json` e `scripts/publish-release.cjs` do Organon. Na abertura do app instalado, buscar uma versão estável e, quando disponível, oferecer download e instalação, com progresso, erro e nova tentativa. Preservar perfil e sessão na atualização.
 - Entregar um instalador com versão de prévia ao fim do lote. Após validação e autorização explícita do usuário, gerar e validar o instalador estável, fazer commit e push, publicar a GitHub Release com os arquivos de atualização e conferir o canal estável.
 
-## Validação
+### Validação anterior
 
 - Rodar as verificações locais do projeto. No Electron para Windows, conferir a abertura do link, testar número local e completo com e sem `+`, trocar de país e inspecionar os dois seletores abertos nas paletas disponíveis.
 - Validar instalação inicial e atualização sobre uma instalação anterior em perfil de teste. Conferir abertura, descoberta de versão, download, reinício para instalar e preservação do perfil. Exercitar falha e nova tentativa antes da publicação com uma fonte de teste. Após publicação autorizada, verificar a Release e os metadados no canal real.

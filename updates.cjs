@@ -107,7 +107,7 @@ class AppUpdates {
       } });
       await pipeline(Readable.fromWeb(response.body), measure, fs.createWriteStream(partial));
       if (received !== candidate.size || hash.digest('hex') !== candidate.sha256) throw new Error('A verificação do download falhou. Nada foi instalado. Tente baixar novamente.');
-      fs.renameSync(partial, file);
+      await fs.promises.rename(partial, file);
       this.installer = file; this.installerHash = candidate.sha256;
       return this.set({ status: 'ready', percent: 100 });
     } catch (error) {

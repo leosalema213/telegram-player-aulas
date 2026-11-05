@@ -1,6 +1,9 @@
 const { contextBridge, ipcRenderer } = require('electron');
 
 contextBridge.exposeInMainWorld('player', {
+  minimizeWindow: () => ipcRenderer.invoke('window-minimize'),
+  maximizeWindow: () => ipcRenderer.invoke('window-maximize'),
+  closeWindow: () => ipcRenderer.invoke('window-close'),
   appearance: () => ipcRenderer.invoke('appearance'),
   saveAppearance: settings => ipcRenderer.invoke('save-appearance', settings),
   playbackSettings: () => ipcRenderer.invoke('playback-settings'),
@@ -16,6 +19,12 @@ contextBridge.exposeInMainWorld('player', {
   downloadDocument: (id, document) => ipcRenderer.invoke('download-document', id, document),
   loadNotes: id => ipcRenderer.invoke('notes-load', id),
   saveNotes: (id, notes) => ipcRenderer.invoke('notes-save', id, notes),
+  loadPlaylist: id => ipcRenderer.invoke('playlist-load', id),
+  importPlaylist: (id, folder) => ipcRenderer.invoke('playlist-import', id, folder),
+  createPlaylistFolder: (id, parent, name, color) => ipcRenderer.invoke('playlist-folder-create', id, parent, name, color),
+  updatePlaylistFolder: (id, folder, name, color) => ipcRenderer.invoke('playlist-folder-update', id, folder, name, color),
+  movePlaylist: (id, item, folder, direction) => ipcRenderer.invoke('playlist-move', id, item, folder, direction),
+  deletePlaylist: (id, kind, entry) => ipcRenderer.invoke('playlist-delete', id, kind, entry),
   progress: (id, lesson, position, done) => ipcRenderer.invoke('progress', id, lesson, position, done),
   openApi: () => ipcRenderer.invoke('open-api'),
   appVersion: () => ipcRenderer.invoke('app-version'),

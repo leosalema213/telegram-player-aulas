@@ -10,6 +10,7 @@ Aplicativo para Windows que organiza aulas de vídeo de canais do Telegram acess
 4. Escolha **Importar canal**, selecione um canal ao qual sua conta já tem acesso e importe as aulas. O app não concede acesso a canais privados.
 5. Abra uma aula ou marque a caixa ao lado dela para registrar que já assistiu. **Continuar** retoma o ponto salvo; **Modo teatro** amplia o vídeo e recolhe a lista de aulas.
 6. Os documentos do canal aparecem em **Materiais para baixar**. Escolha **Baixar** e indique onde salvar. Em cursos importados anteriormente, use **Atualizar** para consultar os materiais e novas aulas preservando o progresso das aulas ainda presentes.
+7. Em cada curso, use **Playlist** para adicionar áudios, vídeos e imagens do computador. Crie pastas e subpastas, altere a ordem e escolha Lista ou Galeria. Os arquivos são copiados para o perfil local, portanto continuam disponíveis mesmo se o original for movido.
 
 Ao abrir, o player prepara a aula pendente mais recente no ponto salvo, sem iniciar a reprodução automaticamente. Nos controles, ajuste a velocidade com as opções rápidas, o controle deslizante ou um valor entre 0,25× e 2×; a escolha é mantida entre aulas e cursos.
 
@@ -40,6 +41,7 @@ Depois de importar um canal ao qual você já tem acesso, abra uma aula, avance 
 
 - A sessão fica em `sessao.bin`, protegida pelo Electron `safeStorage` no perfil local do Windows. O código de login e a senha de duas etapas são usados apenas durante a autenticação.
 - Cada conta tem seu próprio `biblioteca-<id>.json`, com o catálogo importado, os identificadores das postagens, a duração e o progresso. A pasta fica sob `%APPDATA%\Player de Aulas`. Desconectar encerra a sessão e preserva a biblioteca. Remover um curso apaga o catálogo e o progresso daquele curso.
+- A playlist fica em um índice e uma pasta de arquivos separados por conta e curso dentro do perfil local. Remover um curso preserva essa playlist para uma reimportação futura.
 - O player lê os vídeos do Telegram em partes, pela conexão da conta. Os trechos passam pelo processo do app e são entregues ao player por um protocolo interno. O curso inteiro não precisa ser baixado.
 - O aplicativo atualiza a posição durante a reprodução, ao pausar e ao avançar no vídeo. A duração restante soma o tempo das aulas pendentes e desconta a posição registrada em cada uma.
 
