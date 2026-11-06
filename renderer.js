@@ -7,6 +7,7 @@ let lastSaved = 0;
 let restoring = false;
 let view = 'course';
 let playbackSpeed = 1;
+let librarySpeed = 1;
 let playlistData;
 const expandedFolders = new Set();
 let popupAnchor;
@@ -290,10 +291,10 @@ function renderPlaylistBranch(folderId, folders) {
     const down = iconButton('Descer', 'M12 5v14m-7-7 7 7 7-7', () => updatePlaylist(() => window.player.movePlaylist(course.id, item.id, folderId, 'down')));
     up.disabled = index === 0; down.disabled = index === entries.length - 1;
     controls.append(up, down);
-    if (item.type !== 'image') {
+    if (isAudio) {
       const wrapper = document.createElement('div');
       wrapper.className = 'speed-control';
-      const speed = button(`${String(playbackSpeed).replace('.', ',')}×`, event => toggleSpeedMenu(event.currentTarget), 'speed-button library-speed');
+      const speed = button(formatSpeed(librarySpeed), event => toggleSpeedMenu(event.currentTarget), 'speed-button library-speed');
       speed.setAttribute('aria-label', `Velocidade de ${item.name}`);
       speed.setAttribute('aria-expanded', 'false');
       speed.setAttribute('aria-controls', 'speed-menu');
@@ -302,6 +303,24 @@ function renderPlaylistBranch(folderId, folders) {
     }
     controls.append(iconButton('Opções do arquivo', 'M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8ZM9 3l-1 3-3 1-2 3 2 2-1 3 2 3 3-1 2 4h3l1-3 3-1 3-2-2-3 1-3-2-3-3 1-2-4Z', event => showFileActions(item, folders, event.currentTarget)));
     entry.append(title, detail, controls);
+    if (isAudio) {
+      const progress = document.createElement('div');
+      progress.className = 'audio-progress';
+      progress.dataset.audioProgress = item.id;
+      progress.hidden = true;
+      const seek = document.createElement('input');
+      seek.type = 'range';
+      seek.min = '0';
+      seek.step = 'any';
+      seek.setAttribute('aria-label', `Posição de reprodução de ${item.name}`);
+      seek.oninput = () => {
+        if (activeAudioId !== item.id || seek.disabled) return;
+        libraryAudio.currentTime = seek.valueAsNumber;
+        syncAudioProgress();
+      };
+      progress.append(seek, document.createElement('small'));
+      entry.append(progress);
+    }
     return entry;
   });
   if (!branch.childElementCount && !entries.length) {
@@ -345,9 +364,12 @@ function openMedia(item) {
   for (const id of ['media-image', 'media-video']) $(id).hidden = true;
   const target = $(item.type === 'image' ? 'media-image' : 'media-video');
   target.src = mediaUrl(item); target.hidden = false;
-  target.playbackRate = playbackSpeed;
   if (!$('media-viewer').open) $('media-viewer').showModal();
-  if (item.type !== 'image') target.play().catch(() => {});
+  if (item.type === 'video') {
+    target.defaultPlaybackRate = 1;
+    target.playbackRate = 1;
+    target.play().catch(() => {});
+  }
 }
 
 function saveProgress(done) {
@@ -570,6 +592,22 @@ function syncAudioControls() {
     control.querySelector('path').setAttribute('d', playing ? 'M9 5v14M15 5v14' : 'm9 5 12 7-12 7z');
   }
   for (const control of document.querySelectorAll('[data-audio-stop]')) control.disabled = control.dataset.audioStop !== activeAudioId;
+  for (const progress of document.querySelectorAll('[data-audio-progress]')) progress.hidden = progress.dataset.audioProgress !== activeAudioId;
+  syncAudioProgress();
+}
+function syncAudioProgress() {
+  const progress = document.querySelector('.audio-progress:not([hidden])');
+  if (!progress) return;
+  const [seek, time] = progress.children;
+  const length = libraryAudio.duration;
+  const ready = Number.isFinite(length) && length > 0;
+  seek.disabled = !ready;
+  seek.max = ready ? String(length) : '0';
+  seek.valueAsNumber = ready ? libraryAudio.currentTime : 0;
+  const elapsed = duration(Math.floor(seek.valueAsNumber));
+  const total = ready ? duration(Math.floor(length)) : '–:––';
+  seek.setAttribute('aria-valuetext', `${elapsed} de ${total}`);
+  time.textContent = `${elapsed} / ${total}`;
 }
 function stopLibraryAudio() {
   if (!activeAudioId) return;
@@ -584,8 +622,9 @@ function playLibraryAudio(item) {
   if (activeAudioId !== item.id) {
     activeAudioId = item.id;
     libraryAudio.src = mediaUrl(item);
+    syncAudioControls();
   }
-  libraryAudio.playbackRate = playbackSpeed;
+  libraryAudio.playbackRate = librarySpeed;
   libraryAudio.play().catch(error => {
     if (error.name !== 'AbortError' && activeAudioId === item.id) {
       stopLibraryAudio();
@@ -594,6 +633,7 @@ function playLibraryAudio(item) {
   });
 }
 libraryAudio.onplay = libraryAudio.onpause = syncAudioControls;
+libraryAudio.ondurationchange = libraryAudio.ontimeupdate = syncAudioProgress;
 libraryAudio.onended = () => {
   const item = playlistData?.items.find(entry => entry.id === activeAudioId);
   const next = item && playlistItems(item.folderId).slice(playlistItems(item.folderId).indexOf(item) + 1).find(entry => entry.type === 'audio');
@@ -698,36 +738,54 @@ function displaySpeed(speed) {
   playbackSpeed = speed;
   video.defaultPlaybackRate = speed;
   video.playbackRate = speed;
-  libraryAudio.defaultPlaybackRate = speed;
-  libraryAudio.playbackRate = speed;
-  $('media-video').playbackRate = speed;
-  for (const button of document.querySelectorAll('.library-speed')) button.textContent = `${String(speed).replace('.', ',')}×`;
-  $('speed-toggle').textContent = `${String(speed).replace('.', ',')}×`;
+  $('speed-toggle').textContent = formatSpeed(speed);
+}
+function formatSpeed(speed) {
+  return `${String(speed).replace('.', ',')}×`;
+}
+function displaySpeedMenuValue(speed) {
   $('speed-number').value = String(speed);
   $('speed-range').value = String(speed);
   $('speed-status').textContent = '';
   document.querySelectorAll('[data-speed]').forEach(button => button.setAttribute('aria-pressed', String(Number(button.dataset.speed) === speed)));
 }
 async function setSpeed(value, save = true) {
+  const isLibrary = speedAnchor?.classList.contains('library-speed');
   const speed = Number(value);
   if (!window.playbackUtils.validSpeed(speed)) {
     $('speed-status').textContent = 'Informe um valor entre 0,25 e 2, com até duas casas decimais.';
     return;
   }
-  displaySpeed(speed);
-  if (save) {
+  if (isLibrary) {
+    librarySpeed = speed;
+    libraryAudio.defaultPlaybackRate = speed;
+    libraryAudio.playbackRate = speed;
+    for (const button of document.querySelectorAll('.library-speed')) button.textContent = formatSpeed(speed);
+  } else {
+    displaySpeed(speed);
+  }
+  displaySpeedMenuValue(speed);
+  if (save && !isLibrary) {
     try { await window.player.savePlaybackSpeed(speed); }
-    catch { $('speed-status').textContent = 'Não foi possível salvar a velocidade. Tente novamente.'; }
+    catch {
+      if (speedAnchor === $('speed-toggle')) $('speed-status').textContent = 'Não foi possível salvar a velocidade. Tente novamente.';
+    }
   }
 }
 let speedAnchor;
+function currentMenuSpeed() {
+  return speedAnchor?.classList.contains('library-speed') ? librarySpeed : playbackSpeed;
+}
 function showSpeedMenu(open, anchor = $('speed-toggle')) {
   const menu = $('speed-menu');
   speedAnchor?.setAttribute('aria-expanded', 'false');
   speedAnchor = open ? anchor : undefined;
   (open ? anchor : $('speed-toggle')).parentElement.append(menu);
   menu.hidden = !open;
-  if (open) anchor.setAttribute('aria-expanded', 'true');
+  if (open) {
+    displaySpeedMenuValue(currentMenuSpeed());
+    anchor.setAttribute('aria-expanded', 'true');
+  }
 }
 function toggleSpeedMenu(anchor) {
   showSpeedMenu(speedAnchor !== anchor, anchor);
@@ -736,8 +794,8 @@ $('speed-toggle').onclick = event => toggleSpeedMenu(event.currentTarget);
 $('speed-range').oninput = event => setSpeed(event.target.value, false);
 $('speed-range').onchange = event => setSpeed(event.target.value);
 $('speed-number').onchange = event => setSpeed(event.target.value);
-$('speed-minus').onclick = () => setSpeed(Math.max(0.25, Math.round((playbackSpeed - 0.05) * 100) / 100));
-$('speed-plus').onclick = () => setSpeed(Math.min(2, Math.round((playbackSpeed + 0.05) * 100) / 100));
+$('speed-minus').onclick = () => setSpeed(Math.max(0.25, Math.round((currentMenuSpeed() - 0.05) * 100) / 100));
+$('speed-plus').onclick = () => setSpeed(Math.min(2, Math.round((currentMenuSpeed() + 0.05) * 100) / 100));
 document.querySelectorAll('[data-speed]').forEach(button => { button.onclick = () => setSpeed(button.dataset.speed); });
 document.addEventListener('click', event => { if (!event.target.closest('.speed-control')) showSpeedMenu(false); });
 document.addEventListener('keydown', event => {

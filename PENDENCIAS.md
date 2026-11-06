@@ -1,5 +1,7 @@
 # Pendências
 
+- [ ] Conferir na versão 0.1.6 o avanço e o retrocesso pela barra em arquivos de áudio reais longos e a abertura do vídeo da Biblioteca em 1×. A prévia foi aprovada, e o teste em demonstração conferiu a busca no áudio e as velocidades após reabrir.
+
 - [ ] Validar a prévia 0.1.5-preview.1 em curso real: lista de aulas alinhada à altura do player, materiais logo abaixo, busca, rolagem até a última aula, redimensionamento e modo teatro.
 
 - [ ] Validar login com código, login com duas etapas, reconexão e desconexão em uma conta de teste.
