@@ -73,8 +73,8 @@ function render() {
   $('add').hidden = !library.connected;
   $('disconnect').hidden = !library.connected || library.demo;
   $('connection-label').textContent = library.demo ? 'Modo demonstração' : 'Dados locais';
-  $('courses').replaceChildren(...library.courses.map(item => {
-    const entry = button(item.title, () => selectCourse(item), 'course-link');
+  $('courses').replaceChildren(...window.playbackUtils.sortCourses(library.courses).filter(item => window.playbackUtils.courseStatus(item) !== 'completed').map(item => {
+    const entry = button(item.title, () => selectCourse(item), `course-link course-${window.playbackUtils.courseStatus(item)}`);
     if (item === course && view === 'course') entry.setAttribute('aria-current', 'true');
     return entry;
   }));
@@ -100,14 +100,25 @@ function renderDashboard() {
   $('dashboard-progress').textContent = `${percent}%`;
   $('dashboard-remaining').textContent = duration(remaining);
   $('dashboard-empty').hidden = library.courses.length > 0;
-  $('dashboard-courses').replaceChildren(...library.courses.map(item => {
-    const card = button('', () => selectCourse(item), 'card dashboard-course');
+  const sorted = window.playbackUtils.sortCourses(library.courses);
+  function courseCard(item) {
+    const status = window.playbackUtils.courseStatus(item);
+    const card = button('', () => selectCourse(item), `card dashboard-course course-${status}`);
     const title = document.createElement('strong'); title.textContent = item.title;
     const done = item.lessons.filter(lesson => lesson.done).length;
     const detail = document.createElement('span'); detail.textContent = `${done} de ${item.lessons.length} aulas concluídas`;
     const progress = document.createElement('progress'); progress.max = Math.max(1, item.lessons.length); progress.value = done;
-    card.append(title, detail, progress); return card;
-  }));
+    const label = document.createElement('small');
+    label.textContent = { started: 'Em andamento', new: 'Não iniciado', completed: 'Concluído' }[status];
+    progress.setAttribute('aria-label', `Aulas concluídas de ${item.title}`);
+    card.append(title, label, detail, progress); return card;
+  }
+  $('dashboard-courses').replaceChildren(...sorted.map(courseCard));
+  for (const [id, status] of [['started', 'started'], ['completed', 'completed']]) {
+    const items = sorted.filter(item => window.playbackUtils.courseStatus(item) === status);
+    $(`dashboard-${id}-section`).hidden = !items.length;
+    $(`dashboard-${id}-courses`).replaceChildren(...items.map(courseCard));
+  }
 }
 
 function renderStats() {
@@ -122,6 +133,7 @@ function renderStats() {
   $('remaining').textContent = duration(left);
   $('percent').textContent = `${percent}%`;
   $('bar').value = percent;
+  $('course').dataset.status = window.playbackUtils.courseStatus(course);
   const next = window.playbackUtils.findResume([course])?.item;
   $('resume').hidden = !next;
   if (next) {

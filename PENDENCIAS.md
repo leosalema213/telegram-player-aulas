@@ -1,5 +1,8 @@
 # Pendências
 
+- [x] Prévia 0.1.7-preview.1 aprovada pelo usuário em 09/11/2026, com autorização explícita para promover e publicar a versão estável 0.1.7. Marca, sidebar, ordem, cores, conclusão, reabertura e persistência conferidas localmente em perfil isolado e no aplicativo empacotado.
+- [ ] Conferir em canal real a atualização com novas aulas na versão 0.1.7. Cursos concluídos ficam acessíveis pela tela inicial e saem da sidebar. Dentro de cada estado, novas importações vêm primeiro; cursos antigos sem data usam a ordem inversa do catálogo como aproximação, sem alterar seu progresso.
+
 - [ ] Conferir na versão 0.1.6 o avanço e o retrocesso pela barra em arquivos de áudio reais longos e a abertura do vídeo da Biblioteca em 1×. A prévia foi aprovada, e o teste em demonstração conferiu a busca no áudio e as velocidades após reabrir.
 
 - [ ] Validar a prévia 0.1.5-preview.1 em curso real: lista de aulas alinhada à altura do player, materiais logo abaixo, busca, rolagem até a última aula, redimensionamento e modo teatro.

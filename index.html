@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' data: media:; media-src lesson: media:; object-src 'none'; base-uri 'none'; form-action 'none'">
   <title>Player de Aulas</title>
+  <link rel="icon" href="assets/icon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="style.css">
   <script src="theme.js" defer></script>
   <script src="playback.js" defer></script>
@@ -67,7 +68,9 @@
       <section id="dashboard" hidden>
         <div class="heading"><div><span class="eyebrow">SEU ESPAÇO</span><h1>Tela inicial</h1><p>Acompanhe o progresso dos seus cursos.</p></div></div>
         <div class="dashboard-stats"><div class="card stat"><span class="eyebrow">AULAS CONCLUÍDAS</span><strong id="dashboard-lessons">0</strong></div><div class="card stat"><span class="eyebrow">CURSOS FINALIZADOS</span><strong id="dashboard-finished">0</strong></div><div class="card stat"><span class="eyebrow">PROGRESSO GERAL</span><strong id="dashboard-progress">0%</strong></div><div class="card stat"><span class="eyebrow">TEMPO RESTANTE</span><strong id="dashboard-remaining">0:00</strong></div></div>
-        <div class="dashboard-heading"><h2>Seus cursos</h2></div><div id="dashboard-courses" class="dashboard-courses"></div>
+        <section id="dashboard-started-section" class="dashboard-section" hidden><div class="dashboard-heading"><h2>Cursos em andamento</h2></div><div id="dashboard-started-courses" class="dashboard-courses"></div></section>
+        <div class="dashboard-heading"><h2>Todos os cursos</h2></div><div id="dashboard-courses" class="dashboard-courses"></div>
+        <section id="dashboard-completed-section" class="dashboard-section" hidden><div class="dashboard-heading"><h2>Cursos concluídos</h2></div><div id="dashboard-completed-courses" class="dashboard-courses"></div></section>
         <p id="dashboard-empty" hidden>Nenhum curso importado ainda.</p>
       </section>
       <section id="course" hidden>

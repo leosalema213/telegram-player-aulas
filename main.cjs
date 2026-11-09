@@ -223,6 +223,7 @@ function setupHandlers(startupError) {
     const previous = new Map((courses[id]?.lessons || []).map(item => [item.id, item]));
     courses[id] = {
       ...channel,
+      importedAt: courses[id]?.importedAt || Date.now(),
       documents,
       lessons: lessons.map(lesson => ({
         ...lesson,

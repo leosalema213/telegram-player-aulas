@@ -13,6 +13,17 @@
       if (item) return { course, item };
     }
   }
+  function courseStatus(course) {
+    if (course.lessons.length && course.lessons.every(lesson => lesson.done)) return 'completed';
+    return course.lessons.some(lesson => lesson.done || lesson.position > 0) ? 'started' : 'new';
+  }
+  function sortCourses(courses) {
+    const rank = { started: 0, new: 1, completed: 2 };
+    return courses.map((course, index) => ({ course, index })).sort((a, b) =>
+      rank[courseStatus(a.course)] - rank[courseStatus(b.course)] ||
+      (b.course.importedAt || 0) - (a.course.importedAt || 0) || b.index - a.index
+    ).map(entry => entry.course);
+  }
   function dashboardMetrics(courses) {
     let lessons = 0, completed = 0, finished = 0, total = 0, remaining = 0;
     for (const course of courses) {
@@ -35,7 +46,7 @@
     if (!Number.isFinite(position) || !Number.isFinite(duration) || duration <= 0 || !['ArrowLeft', 'ArrowRight'].includes(key)) return undefined;
     return Math.max(0, Math.min(duration, position + (key === 'ArrowRight' ? 5 : -5)));
   }
-  const api = { validSpeed, findResume, dashboardMetrics, adjacentLesson, arrowSeek };
+  const api = { validSpeed, findResume, courseStatus, sortCourses, dashboardMetrics, adjacentLesson, arrowSeek };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else root.playbackUtils = api;
 })(globalThis);

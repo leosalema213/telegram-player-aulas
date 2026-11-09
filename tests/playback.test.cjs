@@ -1,6 +1,27 @@
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
-const { validSpeed, findResume, dashboardMetrics, adjacentLesson, arrowSeek } = require('../playback.js');
+const { validSpeed, findResume, courseStatus, sortCourses, dashboardMetrics, adjacentLesson, arrowSeek } = require('../playback.js');
+
+test('classifica e ordena cursos sem alterar o catálogo nem o progresso', () => {
+  const fresh = { id: 'novo', importedAt: 30, lessons: [{ position: 0, done: false }] };
+  const started = { id: 'andamento', importedAt: 10, lessons: [{ position: 5, done: false }] };
+  const finished = { id: 'concluído', importedAt: 40, lessons: [{ position: 0, done: true }] };
+  const empty = { id: 'vazio', lessons: [] };
+  const recent = { ...started, id: 'recente', importedAt: 20 };
+  const catalog = [finished, fresh, started, empty, recent];
+  const original = JSON.stringify(catalog);
+  assert.deepEqual(sortCourses(catalog).map(item => item.id), ['recente', 'andamento', 'novo', 'vazio', 'concluído']);
+  assert.equal(JSON.stringify(catalog), original);
+  assert.equal(courseStatus(empty), 'new');
+  finished.lessons[0].done = false;
+  assert.equal(courseStatus(finished), 'new');
+  finished.lessons[0].position = 3;
+  assert.equal(courseStatus(finished), 'started');
+  finished.lessons[0].done = true;
+  finished.lessons.push({ position: 0, done: false });
+  assert.equal(courseStatus(finished), 'started');
+  assert.deepEqual(sortCourses([empty, { ...empty, id: 'legado' }]).map(item => item.id), ['legado', 'vazio']);
+});
 
 test('aceita velocidades personalizadas de 0,25 a 2 com até duas casas', () => {
   for (const speed of [0.25, 1, 1.2, 1.43, 2]) assert.equal(validSpeed(speed), true);
