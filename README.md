@@ -46,3 +46,5 @@ Depois de importar um canal ao qual você já tem acesso, abra uma aula, avance 
 - O aplicativo atualiza a posição durante a reprodução, ao pausar e ao avançar no vídeo. A duração restante soma o tempo das aulas pendentes e desconta a posição registrada em cada uma.
 
 Para testar com uma conta real a partir da pasta do projeto, execute `npm.cmd start` no PowerShell. Execute `npm.cmd run check` para as verificações locais e `npm.cmd run dist` para gerar o instalador da versão configurada. Consulte [as pendências](PENDENCIAS.md) para o que ainda precisa de validação.
+
+Para preparar uma prévia identificada, execute `node scripts/fluxo-release.cjs preview`. Após testar e aprovar essa prévia, revise e faça commit dos arquivos do lote e execute `node scripts/fluxo-release.cjs publicar --aprovado`. O comando de publicação exige a árvore limpa e a branch `main`, promove a versão, verifica, gera o instalador, cria o commit da versão, envia e publica a Release estável. Se alguma etapa falhar, confira o estado antes de continuar.

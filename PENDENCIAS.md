@@ -1,5 +1,7 @@
 # Pendências
 
+- [ ] Validar recuperação dos comandos de geração e publicação após interrupções. Prévia 0.1.8-preview.1 aprovada e publicação autorizada pelo usuário; 14 testes e abertura empacotada em perfil isolado passaram. O comando de publicação exige árvore limpa e commit prévio do lote aprovado; em caso de falha, conferir o estado e retomar pelas etapas existentes.
+
 - [x] Prévia 0.1.7-preview.1 aprovada pelo usuário em 09/11/2026, com autorização explícita para promover e publicar a versão estável 0.1.7. Marca, sidebar, ordem, cores, conclusão, reabertura e persistência conferidas localmente em perfil isolado e no aplicativo empacotado.
 - [ ] Conferir em canal real a atualização com novas aulas na versão 0.1.7. Cursos concluídos ficam acessíveis pela tela inicial e saem da sidebar. Dentro de cada estado, novas importações vêm primeiro; cursos antigos sem data usam a ordem inversa do catálogo como aproximação, sem alterar seu progresso.
 
